@@ -21,7 +21,7 @@
     <ClInclude Include="__vm\.ThrustAnalyzer.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CurrentSensor.h">
+    <ClInclude Include="src\CurrentSensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -31,7 +31,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CurrentSensor.cpp">
+    <ClCompile Include="src\CurrentSensor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

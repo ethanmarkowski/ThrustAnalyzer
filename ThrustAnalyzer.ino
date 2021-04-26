@@ -6,7 +6,7 @@
 
 void(* resetFunc) (void) = 0;
 
-#include "CurrentSensor.h"
+#include "src/CurrentSensor.h"
 #include <Servo.h>
 #include <HX711.h>
 #include <LiquidCrystal.h>
