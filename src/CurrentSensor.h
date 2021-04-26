@@ -4,27 +4,15 @@
 #define _CURRENTSENSOR_h
 
 #include "arduino.h"
+#include "BaseSensor.h"
 
-class CurrentSensor
+class CurrentSensor : public BaseSensor
 {
 private:
-	const uint8_t _pin;
-	const uint8_t _numReadings;
-	uint8_t _index;
-	float * _readings;
-	float _calibration;
-	float _rawCurrent;
-	float _smoothedCurrent;
-	float _maxCurrent;
+	float AnalogToValue() const;
 
 public:
-	CurrentSensor(const int & pin, const int & numReadings);
-	~CurrentSensor();
-	void Calibrate();
-	void Read();
-	float GetValue();
-	float GetRawValue();
-	float GetMaxValue();
+	CurrentSensor(const int &pin, const int &numReadings);
 };
 
 #endif

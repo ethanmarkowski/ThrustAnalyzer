@@ -24,6 +24,12 @@
     <ClInclude Include="src\CurrentSensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ISensor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BaseSensor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="README.txt">
@@ -32,6 +38,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\CurrentSensor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BaseSensor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

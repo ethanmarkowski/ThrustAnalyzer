@@ -4,7 +4,7 @@
  Author:	Ethan Markowski
 */
 
-void(* resetFunc) (void) = 0;
+void(*resetFunc) (void) = 0;
 
 #include "src/CurrentSensor.h"
 #include <Servo.h>
@@ -12,12 +12,6 @@ void(* resetFunc) (void) = 0;
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <SD.h>
-
-CurrentSensor currentSensor(A13, 30);
-HX711 loadCell;
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-Servo throttle_output;
-File datalog;
 
 #define BUTTONS A0
 #define VOLTAGE_SENSE A15
@@ -29,6 +23,15 @@ File datalog;
 #define SD_DO 50
 #define SD_DI 51
 #define SD_CS 53
+
+HX711 loadCell;
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+Servo throttle_output;
+File datalog;
+
+ISensor *currentSensor = new CurrentSensor(A13, 30);
+
+ISensor *sensors[] = { currentSensor };
 
 int menu_position=0, test_enabled=0, button_state=0, button_transition=0, menu_h_scroll=0, menu_v_scroll=0, test_mode=0, test_status=0, lipo_type=4, current_limit=150, max_throttle=100, test_runtime=20, sd_enabled, sd_filename_selected=0;
 float loadCell_calibration_factor = 105300, voltage, min_voltage=1000, thrust, max_thrust=0, throttle;
@@ -197,7 +200,7 @@ void voltage_reading(void){
 }
 
 void current_safeguard(void){
-  if (currentSensor.GetMaxValue() >= current_limit){
+  if (currentSensor->GetMaxValue() >= current_limit){
     throttle_output.writeMicroseconds(1000); //disable throttle
     test_status=6;
     lcd.clear();
@@ -253,9 +256,9 @@ void data_dump(void){
   datalog.print(String(float(millis()-start_time)/1000)+"; ");
   datalog.print(String(throttle)+"; ");
   datalog.print(String(thrust)+"; ");
-  datalog.print(String(currentSensor.GetRawValue())+"; ");
+  datalog.print(String(currentSensor->GetRawValue())+"; ");
   datalog.print(String(voltage)+"; ");
-  datalog.println(String(currentSensor.GetRawValue()*voltage));
+  datalog.println(String(currentSensor->GetRawValue()*voltage));
 }
 
 /*Setup menu*/
@@ -406,7 +409,7 @@ void calibration(void){
 
   if (input=='s'){
     calibrate_thrust_stand();
-    currentSensor.Calibrate();
+    currentSensor->Calibrate();
 
     test_status=3;
     lcd.clear();
@@ -505,7 +508,7 @@ void thrust_test(void){
   }
     
   thrust_reading();
-  currentSensor.Read();
+  currentSensor->Read();
   voltage_reading();
   current_safeguard();
   voltage_safeguard();
@@ -523,13 +526,13 @@ void thrust_test(void){
 
   //Current draw display
   lcd.setCursor(0,1);
-  lcd.print(float(round(2*currentSensor.GetValue()))/2,1);
+  lcd.print(float(round(2*currentSensor->GetValue()))/2,1);
   lcd.print("A   ");
 
   //power draw display
   lcd.setCursor(9,1);
   //lcd.print();
-  lcd.print(round(voltage*currentSensor.GetValue()));
+  lcd.print(round(voltage*currentSensor->GetValue()));
   lcd.print("W   ");
 }
 
@@ -542,17 +545,17 @@ void thrust_test_summary(void){
 
   //efficiency at max power
   lcd.setCursor(8,0);
-  lcd.print(453.592*max_thrust/(currentSensor.GetMaxValue()*min_voltage));
+  lcd.print(453.592*max_thrust/(currentSensor->GetMaxValue()*min_voltage));
   lcd.print("g/W");
 
   //max current draw display
   lcd.setCursor(0,1);
-  lcd.print(currentSensor.GetMaxValue(),2);
+  lcd.print(currentSensor->GetMaxValue(),2);
   lcd.print("A    ");
 
   //max power display
   lcd.setCursor(8,1);
-  lcd.print(currentSensor.GetMaxValue()*min_voltage,0);
+  lcd.print(currentSensor->GetMaxValue()*min_voltage,0);
   lcd.print("W   ");
 
   button_input();
