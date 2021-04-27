@@ -1,8 +1,9 @@
-// BaseSensor.cpp
+// AnalogSensor.cpp
 
-#include "BaseSensor.h"
+#include "AnalogSensor.h"
 
-BaseSensor::BaseSensor(const int &pin, const int &numReadings) : _pin(pin), _numReadings(numReadings), _index(0), _maxValue(0), _minValue(3.4e38)
+AnalogSensor::AnalogSensor(const int &pin, const bool &bidirectional, const float &sensitivity, const int &numReadings) : 
+	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _numReadings(numReadings), _index(0), _maxValue(0), _minValue(3.4e38)
 {
 	// Initialize current readings buffer
 	_readings = new float[_numReadings];
@@ -12,12 +13,18 @@ BaseSensor::BaseSensor(const int &pin, const int &numReadings) : _pin(pin), _num
 	}
 }
 
-BaseSensor::~BaseSensor()
+AnalogSensor::~AnalogSensor()
 {
 	delete[] _readings;
 }
 
-void BaseSensor::Calibrate()
+float AnalogSensor::AnalogToValue() const
+{
+	// Convert analog reading from sensor to raw current value
+	return ((float)analogRead(_pin) - (512 * _bidirectional)) * 5 / 1024 / _sensitivity;
+}
+
+void AnalogSensor::Calibrate()
 {
 	// Calibrate current sensor based on 100 current readings taken over a 500 millisecond interval
 	float buffer = 0;
@@ -33,7 +40,7 @@ void BaseSensor::Calibrate()
 	_calibration = buffer / numCalibrationReadings;
 }
 
-void BaseSensor::Read()
+void AnalogSensor::Read()
 {
 	// Read sensor and calculate current sensor value from analog reading
 	_rawValue = AnalogToValue() - _calibration;
@@ -58,22 +65,22 @@ void BaseSensor::Read()
 	if (_rawValue < _minValue) { _minValue = _rawValue; }
 }
 
-float BaseSensor::GetValue() const
+float AnalogSensor::GetValue() const
 {
 	return _smoothedValue;
 }
 
-float BaseSensor::GetRawValue() const
+float AnalogSensor::GetRawValue() const
 {
 	return _rawValue;
 }
 
-float BaseSensor::GetMaxValue() const
+float AnalogSensor::GetMaxValue() const
 {
 	return _maxValue;
 }
 
-float BaseSensor::GetMinValue() const
+float AnalogSensor::GetMinValue() const
 {
 	return _minValue;
 }

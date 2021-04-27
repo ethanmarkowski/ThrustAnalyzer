@@ -21,13 +21,10 @@
     <ClInclude Include="__vm\.ThrustAnalyzer.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CurrentSensor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\ISensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\BaseSensor.h">
+    <ClInclude Include="src\AnalogSensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -37,10 +34,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CurrentSensor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\BaseSensor.cpp">
+    <ClCompile Include="src\AnalogSensor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
