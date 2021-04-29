@@ -27,6 +27,9 @@
     <ClInclude Include="src\AnalogSensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Throttle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="README.txt">
@@ -35,6 +38,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AnalogSensor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Throttle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

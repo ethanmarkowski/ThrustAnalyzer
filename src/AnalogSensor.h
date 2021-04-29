@@ -26,7 +26,7 @@ private:
 	float AnalogToValue() const;
 
 public:
-	AnalogSensor(const int& pin, const bool& bidirectional, const float& sensitivity, const int& numReadings);
+	AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings);
 	~AnalogSensor();
 	void Calibrate();
 	void Read();

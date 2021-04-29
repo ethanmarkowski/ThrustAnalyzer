@@ -2,7 +2,7 @@
 
 #include "AnalogSensor.h"
 
-AnalogSensor::AnalogSensor(const int &pin, const bool &bidirectional, const float &sensitivity, const int &numReadings) : 
+AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t&numReadings) :
 	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _numReadings(numReadings), _index(0), _maxValue(0), _minValue(3.4e38)
 {
 	// Initialize current readings buffer

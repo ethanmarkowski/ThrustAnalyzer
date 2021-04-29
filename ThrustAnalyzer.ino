@@ -7,15 +7,13 @@
 void(*resetFunc) (void) = 0;
 
 #include "src/AnalogSensor.h"
-#include <Servo.h>
+#include "src/Throttle.h"
 #include <HX711.h>
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <SD.h>
 
 #define BUTTONS A0
-#define THROTTLE_INPUT A14
-#define THROTTLE_OUTPUT 44
 #define SCALE_DOUT 23
 #define SCALE_CLK 22
 #define SD_CLK 52
@@ -23,12 +21,12 @@ void(*resetFunc) (void) = 0;
 #define SD_DI 51
 #define SD_CS 53
 
-enum Pins { CURRENTPIN = A13, VOLTAGEPIN = A15};
-enum SensorSmoothing { CURRENTSMOOTHING = 30, VOLTAGESMOOTHING = 1};
+enum Pins { CURRENTPIN = A13, VOLTAGEPIN = A15, ESCPIN = 44, POTPIN = A14 };
+enum SensorSmoothing { CURRENTSMOOTHING = 30, VOLTAGESMOOTHING = 1 };
 
 HX711 loadCell;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-Servo throttle_output;
+Throttle throttle(ESCPIN, POTPIN);
 File datalog;
 
 ISensor *currentSensor = new AnalogSensor(CURRENTPIN, true, 0.04, CURRENTSMOOTHING);
@@ -36,8 +34,8 @@ ISensor *voltageSensor = new AnalogSensor(VOLTAGEPIN, false, 0.08975, VOLTAGESMO
 
 ISensor *sensors[] = { currentSensor, voltageSensor };
 
-int menu_position=0, test_enabled=0, button_state=0, button_transition=0, menu_h_scroll=0, menu_v_scroll=0, test_mode=0, test_status=0, lipo_type=4, current_limit=150, max_throttle=100, test_runtime=20, sd_enabled, sd_filename_selected=0;
-float loadCell_calibration_factor = 105300, thrust, max_thrust=0, throttle;
+int menu_position=0, test_enabled=0, button_state=0, button_transition=0, menu_h_scroll=0, menu_v_scroll=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
+float loadCell_calibration_factor = 105300, thrust, max_thrust = 0;
 char input;
 unsigned long start_time;
 
@@ -55,10 +53,6 @@ void setup() {
 
   //set up SD breakout
   pinMode(53,OUTPUT);
-
-  //create servo object for throttle control output and activate arming signal
-  throttle_output.attach(THROTTLE_OUTPUT);
-  throttle_output.writeMicroseconds(1000); 
 }
 
 void loop() {
@@ -66,7 +60,7 @@ void loop() {
     menu();
   }
   else if (menu_position==3){
-    switch (test_mode){
+    switch (throttle.GetMode()){
       case 0: auto_thrust_test();
       break;
       case 1: manual_thrust_test();
@@ -197,7 +191,7 @@ void thrust_reading(void){
 
 void current_safeguard(void){
   if (currentSensor->GetMaxValue() >= current_limit){
-    throttle_output.writeMicroseconds(1000); //disable throttle
+    throttle.Disarm(); //disable throttle
     test_status=6;
     lcd.clear();
 
@@ -216,7 +210,7 @@ void current_safeguard(void){
 
 void voltage_safeguard(void){
   if (voltageSensor->GetMinValue()<=lipo_type*3.2){
-    throttle_output.writeMicroseconds(1000); //disable throttle
+    throttle.Disarm(); //disable throttle
     test_status=6;
     lcd.clear();
 
@@ -232,25 +226,9 @@ void voltage_safeguard(void){
   }
 }
 
-void manual_throttle(void){
-  throttle=float(analogRead(THROTTLE_INPUT))/1023*100;
-  throttle_output.writeMicroseconds(throttle/100*950 + 1050); 
-}
-
-void automatic_throttle(void){
-  throttle=float((millis()-start_time))/1000/(test_runtime-5)*max_throttle;
-  throttle=constrain(throttle,0,max_throttle);
-  throttle_output.writeMicroseconds(throttle/100*950 + 1050);
-  if (float(millis()-start_time)/1000>=test_runtime){
-    throttle_output.writeMicroseconds(1000); //disable throttle
-    test_status=6;
-    lcd.clear();
-  }
-}
-
 void data_dump(void){
   datalog.print(String(float(millis()-start_time)/1000)+"; ");
-  datalog.print(String(throttle)+"; ");
+  datalog.print(String(throttle.GetThrottle())+"; ");
   datalog.print(String(thrust)+"; ");
   datalog.print(String(currentSensor->GetRawValue())+"; ");
   datalog.print(String(voltageSensor->GetValue())+"; ");
@@ -268,7 +246,7 @@ void menu(void){
     lcd.home();
     lcd.print("Select Mode:");
     lcd.setCursor(0,1);
-    switch (test_mode){
+    switch (throttle.GetMode()){
       case 0:
       lcd.print("1 Auto Thrust");
       break;
@@ -278,12 +256,10 @@ void menu(void){
     }
 
     button_input();
-    if (input=='u'&&test_mode<1){
-      test_mode++;
+    if (input=='u'&&throttle.GetMode()<1){
       lcd.clear();
     }
-    else if (input=='d'&&test_mode>0){
-      test_mode--;
+    else if (input=='d'&&throttle.GetMode()>0){
       lcd.clear();
     }
     else if (input=='r'){
@@ -349,50 +325,20 @@ void set_max_thrust(void){
   lcd.home();
   lcd.print("Set Max Throttle");
   lcd.setCursor(0,1);
-  lcd.print(max_throttle);
+  lcd.print(throttle.GetAutoMaxThrottle());
   lcd.print("%  ");
 
   button_input();
-
-  if (input=='u'&&max_throttle<100){
-    max_throttle+=5;
-  }
-  else if (input=='d'&&max_throttle>5){
-     max_throttle-=5;
-  }
-  else if (input=='r'){
-    test_status=1;
-    lcd.clear();
-  }
-  else if (input=='l'){
-    menu_position--;
-    lcd.clear();
-  }
 }
 
 void set_test_duration(void){
   lcd.home();
   lcd.print("Set Test Runtime");
   lcd.setCursor(0,1);
-  lcd.print(test_runtime);
+  lcd.print(throttle.GetAutoRunTime());
   lcd.print("s ");
 
   button_input();
-
-  if (input=='u'&&test_runtime<60){
-    test_runtime+=5;
-  }
-  else if (input=='d'&&test_runtime>10){
-    test_runtime-=5;
-  }
-  else if (input=='r'){
-    test_status=2;
-    lcd.clear();
-  }
-  else if (input=='l'){
-    test_status--;
-    lcd.clear();
-  }
 }
 
 void calibration(void){
@@ -462,7 +408,7 @@ void sd_setup(void){
 }
 
 void test_start_screen(void){
-  throttle_output.writeMicroseconds(1000);
+    throttle.Run();
         
   lcd.home();
   lcd.print("Test Ready");
@@ -486,16 +432,9 @@ void thrust_test(void){
   button_input(); 
 
   if (input=='s'){
-    throttle_output.writeMicroseconds(1000); //disable throttle
+      throttle.Disarm(); //disable throttle
     test_status=6;          
     lcd.clear();
-  }
-    
-  if (test_mode==0){
-    automatic_throttle();
-  }
-  else if (test_mode==1){
-    manual_throttle();
   }
 
   //writes data to file if SD file storage is enabled
@@ -517,7 +456,7 @@ void thrust_test(void){
 
   //throttle percentage display
   lcd.setCursor(9,0);
-  lcd.print(throttle, 0);
+  lcd.print((int)throttle.GetThrottle() * 100, 0);
   lcd.print("%   ");
 
   //Current draw display
