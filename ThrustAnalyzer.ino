@@ -6,14 +6,14 @@
 
 void(*resetFunc) (void) = 0;
 
-#include "src/AnalogSensor.h"
+#include "src/AnalogButtons.h"
 #include "src/Throttle.h"
+#include "src/AnalogSensor.h"
 #include <HX711.h>
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <SD.h>
 
-#define BUTTONS A0
 #define SCALE_DOUT 23
 #define SCALE_CLK 22
 #define SD_CLK 52
@@ -21,22 +21,22 @@ void(*resetFunc) (void) = 0;
 #define SD_DI 51
 #define SD_CS 53
 
-enum Pins { CURRENTPIN = A13, VOLTAGEPIN = A15, ESCPIN = 44, POTPIN = A14 };
-enum SensorSmoothing { CURRENTSMOOTHING = 30, VOLTAGESMOOTHING = 1 };
+enum Pins { CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44, POT_PIN = A14, BUTTON_PIN = A0 };
+enum SensorSmoothing { CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
 
 HX711 loadCell;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-Throttle throttle(ESCPIN, POTPIN);
+AnalogButtons button(BUTTON_PIN);
+Throttle throttle(ESC_PIN, POT_PIN);
 File datalog;
-
-ISensor *currentSensor = new AnalogSensor(CURRENTPIN, true, 0.04, CURRENTSMOOTHING);
-ISensor *voltageSensor = new AnalogSensor(VOLTAGEPIN, false, 0.08975, VOLTAGESMOOTHING);
+ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING);
+ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING);
 
 ISensor *sensors[] = { currentSensor, voltageSensor };
 
-int menu_position=0, test_enabled=0, button_state=0, button_transition=0, menu_h_scroll=0, menu_v_scroll=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
+Buttons input;
+int menu_position=0, menu_h_scroll=0, menu_v_scroll=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
 float loadCell_calibration_factor = 105300, thrust, max_thrust = 0;
-char input;
 unsigned long start_time;
 
 
@@ -146,34 +146,6 @@ void manual_thrust_test(void){
   }
 }
 
-void button_input(void){
-  input='0';
-  
-  /*Read buttons and store inputs*/
-  button_state=analogRead(BUTTONS);
-  if (button_transition==0&&button_state<900){
-    if (button_state<50){
-      input='r';
-    }
-    else if (button_state<300){
-      input='u';
-    }
-    else if (button_state<500){
-      input='d';
-    }
-    else if (button_state<700){
-      input='l';
-    }
-    else if (button_state<900){
-      input='s';
-    }
-    button_transition=1;
-  }
-  else if (button_state>900){
-    button_transition=0;
-  }
-}
-
 void calibrate_thrust_stand(void){
   loadCell.tare();
   loadCell.set_scale(loadCell_calibration_factor); //Adjust to this calibration factor
@@ -186,43 +158,6 @@ void thrust_reading(void){
   }
   if (thrust>max_thrust){
     max_thrust=thrust;
-  }
-}
-
-void current_safeguard(void){
-  if (currentSensor->GetMaxValue() >= current_limit){
-    throttle.Disarm(); //disable throttle
-    test_status=6;
-    lcd.clear();
-
-    while (input!='s'){
-      lcd.home();
-      lcd.print("Overcurrent:");
-      lcd.setCursor(0,1);
-      lcd.print("Press Start");
-
-      button_input();
-    }
-
-    lcd.clear();
-  }
-}
-
-void voltage_safeguard(void){
-  if (voltageSensor->GetMinValue()<=lipo_type*3.2){
-    throttle.Disarm(); //disable throttle
-    test_status=6;
-    lcd.clear();
-
-    while (input!='s'){
-      lcd.home();
-      lcd.print("Low voltage");
-      lcd.setCursor(0,1);
-      lcd.print("Press Start");
-
-      button_input();
-    }
-    lcd.clear();
   }
 }
 
@@ -255,14 +190,14 @@ void menu(void){
       break;
     }
 
-    button_input();
-    if (input=='u'&&throttle.GetMode()<1){
+    input = button.GetInput();
+    if (input==Buttons::UP&&throttle.GetMode()<1){
       lcd.clear();
     }
-    else if (input=='d'&&throttle.GetMode()>0){
+    else if (input==Buttons::DOWN&&throttle.GetMode()>0){
       lcd.clear();
     }
-    else if (input=='r'){
+    else if (input==Buttons::RIGHT){
       menu_position=1;
       lcd.clear();
     }
@@ -276,18 +211,18 @@ void menu(void){
     lcd.print(lipo_type);
     lcd.print("s ");
 
-    button_input();
-    if (input=='u'&&lipo_type<12){
+    input = button.GetInput();
+    if (input==Buttons::UP&&lipo_type<12){
       lipo_type++;
     }
-    else if (input=='d'&&lipo_type>1){
+    else if (input==Buttons::DOWN&&lipo_type>1){
       lipo_type--;
     }
-    else if (input=='l'){
+    else if (input==Buttons::LEFT){
       menu_position--;
       lcd.clear();
     }
-    else if (input=='r'){
+    else if (input==Buttons::RIGHT){
       menu_position++;
       lcd.clear();
     }
@@ -301,18 +236,18 @@ void menu(void){
     lcd.print(current_limit);
     lcd.print("A  ");
 
-    button_input();
-    if (input=='u'&&current_limit<150){
+    input = button.GetInput();
+    if (input==Buttons::UP&&current_limit<150){
       current_limit+=5;
     }
-    else if (input=='d'&&current_limit>5){
+    else if (input==Buttons::DOWN&&current_limit>5){
       current_limit-=5;
     }
-    else if (input=='l'){
+    else if (input==Buttons::LEFT){
       menu_position--;
       lcd.clear();
     }
-    else if (input=='r'){
+    else if (input==Buttons::RIGHT){
       menu_position++;
       lcd.clear();
     }
@@ -328,7 +263,7 @@ void set_max_thrust(void){
   lcd.print(throttle.GetAutoMaxThrottle());
   lcd.print("%  ");
 
-  button_input();
+  input = button.GetInput();
 }
 
 void set_test_duration(void){
@@ -338,7 +273,7 @@ void set_test_duration(void){
   lcd.print(throttle.GetAutoRunTime());
   lcd.print("s ");
 
-  button_input();
+  input = button.GetInput();
 }
 
 void calibration(void){
@@ -347,16 +282,16 @@ void calibration(void){
   lcd.setCursor(0,1);
   lcd.print("Press Start");
 
-  button_input();
+  input = button.GetInput();
 
-  if (input=='s'){
+  if (input==Buttons::SELECT){
     calibrate_thrust_stand();
     currentSensor->Calibrate();
 
     test_status=3;
     lcd.clear();
   }
-  else if (input=='l'){
+  else if (input==Buttons::LEFT){
     test_status--;
     lcd.clear();
   }
@@ -380,9 +315,9 @@ void sd_setup(void){
 
   Serial.println(sd_enabled);
 
-  button_input();
+  input = button.GetInput();
 
-  if (input=='s'){
+  if (input==Buttons::SELECT){
     if (sd_enabled==1){
       int i=1;
       while (sd_filename_selected==0){
@@ -401,7 +336,7 @@ void sd_setup(void){
     lcd.clear();
   }
 
-  else if (input=='l'){
+  else if (input==Buttons::LEFT){
     test_status--;
     lcd.clear();
   }
@@ -415,13 +350,13 @@ void test_start_screen(void){
   lcd.setCursor(0,1);
   lcd.print("Press Start");
 
-  button_input();
+  input = button.GetInput();
 
-  if (input=='l'){
+  if (input==Buttons::LEFT){
     test_status--;
     lcd.clear();
   }
-  else if (input=='s'){
+  else if (input==Buttons::SELECT){
     test_status=5;
     lcd.clear();
     start_time=millis();
@@ -429,9 +364,9 @@ void test_start_screen(void){
 }
 
 void thrust_test(void){
-  button_input(); 
+  input = button.GetInput(); 
 
-  if (input=='s'){
+  if (input==Buttons::SELECT){
       throttle.Disarm(); //disable throttle
     test_status=6;          
     lcd.clear();
@@ -445,8 +380,6 @@ void thrust_test(void){
   thrust_reading();
   currentSensor->Update();
   voltageSensor->Update();
-  current_safeguard();
-  voltage_safeguard();
 
   lcd.home();
 
@@ -493,9 +426,9 @@ void thrust_test_summary(void){
   lcd.print(currentSensor->GetMaxValue()*voltageSensor->GetMinValue(),0);
   lcd.print("W   ");
 
-  button_input();
+  input = button.GetInput();
 
-  if (input=='s'){
+  if (input==Buttons::SELECT){
     if (sd_enabled==1){
       datalog.close(); //closes and saves datalog file on SD
     }
