@@ -2,7 +2,7 @@
 
 #include "Throttle.h"
 
-Throttle::Throttle(uint8_t escPin, uint8_t potPin) :
+Throttle::Throttle(const uint8_t &escPin, const uint8_t &potPin) :
 	_escPin(escPin), _potPin(potPin), _isArmed(false), _autoRunTime(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
 
 void Throttle::Arm()
@@ -25,17 +25,17 @@ bool Throttle::GetArmStatus() const { return _isArmed; }
 
 int8_t Throttle::GetMode() const { return _mode; }
 
-void Throttle::SetMode(int8_t &mode) { _mode = constrain(mode, 0, NUM_MODES); }
+void Throttle::SetMode(const int8_t &mode) { _mode = constrain(mode, 0, NUM_MODES); }
 
 uint32_t Throttle::GetAutoRunTime() const { return _autoRunTime; }
 
-void Throttle::SetAutoRunTime(uint32_t &autoRunTime) { _autoRunTime = constrain(autoRunTime, 5000, 120000); }
+void Throttle::SetAutoRunTime(const uint32_t &autoRunTime) { _autoRunTime = constrain(autoRunTime, 5000, 120000); }
 
-void Throttle::SetAutoThrottleNumSteps(uint8_t &autoThrottleNumSteps) { _autoThrottleNumSteps = constrain(autoThrottleNumSteps, 1, 20); }
+void Throttle::SetAutoThrottleNumSteps(const uint8_t &autoThrottleNumSteps) { _autoThrottleNumSteps = constrain(autoThrottleNumSteps, 1, 20); }
 
 float Throttle::GetAutoMaxThrottle() const { return _autoMaxThrottle; }
 
-void Throttle::SetAutoMaxThrottle(float &autoMaxThrottle) { _autoMaxThrottle = constrain(autoMaxThrottle, 0.0, 1.0); }
+void Throttle::SetAutoMaxThrottle(const float &autoMaxThrottle) { _autoMaxThrottle = constrain(autoMaxThrottle, 0.0, 1.0); }
 
 float Throttle::_PotInputToThrottle() const { return (float)analogRead(_potPin) / 1024; }
 

@@ -30,17 +30,17 @@ private:
 public:
 	enum Modes { POTINPUT, AUTO, NUM_MODES = AUTO };
 
-	Throttle(uint8_t escPin, uint8_t potPin);
+	Throttle(const uint8_t &escPin, const uint8_t &potPin);
 	void Arm();
 	void Disarm();
 	bool GetArmStatus() const;
 	int8_t GetMode() const;
-	void SetMode(int8_t &mode);
+	void SetMode(const int8_t &mode);
 	uint32_t GetAutoRunTime() const;
-	void SetAutoRunTime(uint32_t &autoRunTime);
-	void SetAutoThrottleNumSteps(uint8_t &autoThrottleNumSteps);
+	void SetAutoRunTime(const uint32_t &autoRunTime);
+	void SetAutoThrottleNumSteps(const uint8_t &autoThrottleNumSteps);
 	float GetAutoMaxThrottle() const;
-	void SetAutoMaxThrottle(float &autoMaxThrottle);
+	void SetAutoMaxThrottle(const float &autoMaxThrottle);
 	bool GetThrottle() const;
 	void Run();
 };

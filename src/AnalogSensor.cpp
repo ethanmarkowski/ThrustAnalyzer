@@ -40,7 +40,7 @@ void AnalogSensor::Calibrate()
 	_calibration = buffer / numCalibrationReadings;
 }
 
-void AnalogSensor::Read()
+void AnalogSensor::Update()
 {
 	// Read sensor and calculate current sensor value from analog reading
 	_rawValue = AnalogToValue() - _calibration;

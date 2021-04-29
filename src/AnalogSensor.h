@@ -29,7 +29,7 @@ public:
 	AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings);
 	~AnalogSensor();
 	void Calibrate();
-	void Read();
+	void Update();
 	float GetValue() const;
 	float GetRawValue() const;
 	float GetMaxValue() const;

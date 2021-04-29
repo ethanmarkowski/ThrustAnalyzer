@@ -443,8 +443,8 @@ void thrust_test(void){
   }
     
   thrust_reading();
-  currentSensor->Read();
-  voltageSensor->Read();
+  currentSensor->Update();
+  voltageSensor->Update();
   current_safeguard();
   voltage_safeguard();
 

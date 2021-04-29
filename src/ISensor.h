@@ -14,7 +14,7 @@ public:
 	virtual void Calibrate() = 0;
 
 	// Read a new sensor value
-	virtual void Read() = 0;
+	virtual void Update() = 0;
 
 	// Return the most recent sensor value with data smoothing
 	virtual float GetValue() const = 0;
