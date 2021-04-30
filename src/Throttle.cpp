@@ -3,7 +3,7 @@
 #include "Throttle.h"
 
 Throttle::Throttle(const uint8_t &escPin, const uint8_t &potPin) :
-	_escPin(escPin), _potPin(potPin), _isArmed(false), _autoRunTime(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
+	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(AUTO), _isTestStarted(false), _autoRunTime(0), _autoThrottleNumSteps(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
 
 void Throttle::Arm()
 {

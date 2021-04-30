@@ -29,8 +29,8 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 AnalogButtons button(BUTTON_PIN);
 Throttle throttle(ESC_PIN, POT_PIN);
 File datalog;
-ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING);
-ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING);
+ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING, 50, 0);
+ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING, 50, 0);
 
 ISensor *sensors[] = { currentSensor, voltageSensor };
 

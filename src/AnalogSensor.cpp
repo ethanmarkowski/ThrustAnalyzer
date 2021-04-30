@@ -2,8 +2,8 @@
 
 #include "AnalogSensor.h"
 
-AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t&numReadings) :
-	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _numReadings(numReadings), _index(0), _maxValue(0), _minValue(3.4e38)
+AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings, const int8_t &upperLimit, const int8_t &lowerLimit) :
+	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
 {
 	// Initialize current readings buffer
 	_readings = new float[_numReadings];
@@ -12,6 +12,12 @@ AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const f
 		_readings[i] = 0;
 	}
 }
+
+AnalogSensor::AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings) :
+	AnalogSensor(pin, bidirectional, sensitivity, numReadings, 127, -127) {}
+
+AnalogSensor::AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity) :
+	AnalogSensor(pin, bidirectional, sensitivity, 1) {}
 
 AnalogSensor::~AnalogSensor()
 {
@@ -84,3 +90,11 @@ float AnalogSensor::GetMinValue() const
 {
 	return _minValue;
 }
+
+int8_t AnalogSensor::GetUpperSafeguard() const { return _upperSafeguard; }
+
+void AnalogSensor::SetUpperSafeguard(const int8_t &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _upperLimit, _lowerLimit); }
+
+int8_t AnalogSensor::GetLowerSafeguard() const { return _lowerSafeguard; }
+
+void AnalogSensor::SetLowerSafeguard(const int8_t &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _upperLimit, _lowerLimit); }
