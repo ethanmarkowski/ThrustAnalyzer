@@ -3,8 +3,8 @@
 #ifndef _Throttle_h
 #define _Throttle_h
 
-#include "arduino.h"
-#include "Servo.h"
+#include <Arduino.h>
+#include <Servo.h>
 
 class Throttle : protected Servo
 {

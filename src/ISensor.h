@@ -4,7 +4,7 @@
 #define _ISensor_h
 
 
-#include "arduino.h"
+#include <arduino.h>
 
 class ISensor
 {

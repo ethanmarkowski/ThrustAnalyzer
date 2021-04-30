@@ -4,7 +4,7 @@
 #define _AnalogSensor_h
 
 
-#include "arduino.h"
+#include <arduino.h>
 #include "ISensor.h"
 
 class AnalogSensor : public ISensor
