@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include <Servo.h>
+#include "AnalogSensor.h"
 
 class Throttle : protected Servo
 {

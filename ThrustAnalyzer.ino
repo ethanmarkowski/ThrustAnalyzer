@@ -6,39 +6,36 @@
 
 void(*resetFunc) (void) = 0;
 
-#include "src/AnalogButtons.h"
-#include "src/Throttle.h"
-#include "src/AnalogSensor.h"
-#include <HX711.h>
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <SD.h>
+#include "src/AnalogButtons.h"
+#include "src/Throttle.h"
+#include "src/ThrustStand.h"
+#include "src/AnalogSensor.h"
 
-#define SCALE_DOUT 23
-#define SCALE_CLK 22
 #define SD_CLK 52
 #define SD_DO 50
 #define SD_DI 51
 #define SD_CS 53
 
-enum Pins { CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44, POT_PIN = A14, BUTTON_PIN = A0 };
-enum SensorSmoothing { CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
+enum Pins { POT_PIN = A14, BUTTON_PIN = A0, THRUST_DOUT_PIN = 23, THRUST_SCK_PIN = 22, CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44 };
+enum SensorSmoothing { THRUST_SMOOTHING = 1, CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
 
 HX711 loadCell;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 AnalogButtons button(BUTTON_PIN);
 Throttle throttle(ESC_PIN, POT_PIN);
 File datalog;
+ISensor *thrustStand = new ThrustStand(THRUST_DOUT_PIN, THRUST_SCK_PIN, 105300, THRUST_SMOOTHING);
 ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING, 50, 0);
 ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING, 50, 0);
 
-ISensor *sensors[] = { currentSensor, voltageSensor };
+ISensor *sensors[] = { thrustStand, currentSensor, voltageSensor };
 
 Buttons input;
-int menu_position=0, menu_h_scroll=0, menu_v_scroll=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
-float loadCell_calibration_factor = 105300, thrust, max_thrust = 0;
+int menu_position=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
 unsigned long start_time;
-
 
 void setup() {
   Serial.begin(9600);
@@ -46,10 +43,6 @@ void setup() {
   //set up LCD display
   lcd.begin(16, 2);
   lcd.noCursor();
-
-  //set up loadCell
-  loadCell.begin(SCALE_DOUT, SCALE_CLK);
-  loadCell.set_scale();
 
   //set up SD breakout
   pinMode(53,OUTPUT);
@@ -146,25 +139,10 @@ void manual_thrust_test(void){
   }
 }
 
-void calibrate_thrust_stand(void){
-  loadCell.tare();
-  loadCell.set_scale(loadCell_calibration_factor); //Adjust to this calibration factor
-}
-
-void thrust_reading(void){
-  thrust=loadCell.get_units();
-  if (thrust<0){
-    thrust=0;
-  }
-  if (thrust>max_thrust){
-    max_thrust=thrust;
-  }
-}
-
 void data_dump(void){
   datalog.print(String(float(millis()-start_time)/1000)+"; ");
   datalog.print(String(throttle.GetThrottle())+"; ");
-  datalog.print(String(thrust)+"; ");
+  datalog.print(String(thrustStand->GetRawValue())+"; ");
   datalog.print(String(currentSensor->GetRawValue())+"; ");
   datalog.print(String(voltageSensor->GetValue())+"; ");
   datalog.println(String(currentSensor->GetRawValue()*voltageSensor->GetValue()));
@@ -285,7 +263,7 @@ void calibration(void){
   input = button.GetInput();
 
   if (input==Buttons::SELECT){
-    calibrate_thrust_stand();
+    thrustStand->Calibrate();
     currentSensor->Calibrate();
 
     test_status=3;
@@ -377,14 +355,13 @@ void thrust_test(void){
     data_dump();
   }
     
-  thrust_reading();
   currentSensor->Update();
   voltageSensor->Update();
 
   lcd.home();
 
   //thrust reading display
-  lcd.print(thrust, 2);
+  lcd.print(thrustStand->GetValue(), 2);
   lcd.print("lb  ");
 
   //throttle percentage display
@@ -408,12 +385,12 @@ void thrust_test_summary(void){
   lcd.home();
 
   //max thrust display
-  lcd.print(max_thrust, 2);
+  lcd.print(thrustStand->GetMaxValue(), 2);
   lcd.print("lb  ");
 
   //efficiency at max power
   lcd.setCursor(8,0);
-  lcd.print(453.592*max_thrust/(currentSensor->GetMaxValue()*voltageSensor->GetMinValue()));
+  lcd.print(453.592* thrustStand->GetMaxValue() /(currentSensor->GetMaxValue()*voltageSensor->GetMinValue()));
   lcd.print("g/W");
 
   //max current draw display

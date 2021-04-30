@@ -16,7 +16,7 @@ private:
 	float _calibration;
 	const uint8_t _numReadings;
 	uint8_t _index;
-	float* _readings;
+	float *_readings;
 	float _rawValue;
 	float _smoothedValue;
 	float _maxValue;

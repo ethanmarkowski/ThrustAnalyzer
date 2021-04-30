@@ -19,10 +19,7 @@ AnalogSensor::AnalogSensor(const uint8_t &pin, const bool &bidirectional, const 
 AnalogSensor::AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity) :
 	AnalogSensor(pin, bidirectional, sensitivity, 1) {}
 
-AnalogSensor::~AnalogSensor()
-{
-	delete[] _readings;
-}
+AnalogSensor::~AnalogSensor() { delete[] _readings; }
 
 float AnalogSensor::AnalogToValue() const
 {
@@ -48,14 +45,14 @@ void AnalogSensor::Calibrate()
 
 void AnalogSensor::Update()
 {
-	// Read sensor and calculate current sensor value from analog reading
+	// Read sensor and calculate value from analog reading
 	_rawValue = AnalogToValue() - _calibration;
 	_readings[_index] = _rawValue;
 
 	// Increment _index or reset to zero if the index is already set to the end of the _readings array
 	(_index < _numReadings) ? ++_index : _index = 0;
 
-	// Calculate smoothed current value
+	// Calculate smoothed value
 	float buffer = 0;
 	for (int i = 0; i < _numReadings; ++i)
 	{
@@ -71,25 +68,13 @@ void AnalogSensor::Update()
 	if (_rawValue < _minValue) { _minValue = _rawValue; }
 }
 
-float AnalogSensor::GetValue() const
-{
-	return _smoothedValue;
-}
+float AnalogSensor::GetValue() const { return _smoothedValue; }
 
-float AnalogSensor::GetRawValue() const
-{
-	return _rawValue;
-}
+float AnalogSensor::GetRawValue() const { return _rawValue; }
 
-float AnalogSensor::GetMaxValue() const
-{
-	return _maxValue;
-}
+float AnalogSensor::GetMaxValue() const { return _maxValue; }
 
-float AnalogSensor::GetMinValue() const
-{
-	return _minValue;
-}
+float AnalogSensor::GetMinValue() const { return _minValue; }
 
 int8_t AnalogSensor::GetUpperSafeguard() const { return _upperSafeguard; }
 
