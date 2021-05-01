@@ -36,6 +36,9 @@
     <ClInclude Include="src\ThrustStand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\SDLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="README.txt">
@@ -53,6 +56,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ThrustStand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SDLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

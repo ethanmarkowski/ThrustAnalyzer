@@ -13,7 +13,7 @@ ThrustStand::ThrustStand(const uint8_t &doutPin, const uint8_t &sckPin, const fl
 
 	// Initialize current readings buffer
 	_readings = new float[_numReadings];
-	for (int i = 0; i < _numReadings; ++i)
+	for (uint8_t i = 0; i < _numReadings; ++i)
 	{
 		_readings[i] = 0;
 	}
@@ -34,7 +34,7 @@ void ThrustStand::Update()
 
 	// Calculate smoothed value
 	float buffer = 0;
-	for (int i = 0; i < _numReadings; ++i)
+	for (uint8_t i = 0; i < _numReadings; ++i)
 	{
 		buffer += _readings[i];
 	}

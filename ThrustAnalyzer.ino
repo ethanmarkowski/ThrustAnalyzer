@@ -9,6 +9,7 @@ void(*resetFunc) (void) = 0;
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <SD.h>
+#include "src/SDLogger.h"
 #include "src/AnalogButtons.h"
 #include "src/Throttle.h"
 #include "src/ThrustStand.h"
