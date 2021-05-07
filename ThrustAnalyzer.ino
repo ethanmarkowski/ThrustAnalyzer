@@ -17,7 +17,7 @@ enum Pins { SD_CLK_PIN = 52, SD_DO_PIN = 50, SD_DI_PIN = 51, SD_CS_PIN = 53, POT
 enum SensorSmoothing { THRUST_SMOOTHING = 1, CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
 const float cellMinVoltage = 3.0; // Establishes the minimum voltage cutoff per LIPO cell
 
-enum class ProgramStates { SET_MODE, SET_LIPO_CELL_COUNT, SET_CURRENT_LIMIT, SET_MAX_THROTTLE, SET_NUM_STEPS, SET_TEST_RUNTIME, SETUP_SD_LOGGER, ARM_AND_CALIBRATE, TEST_START_SCREEN, RUN_TEST, HIGH_CURRENT_WARNING, LOW_VOLTAGE_WARNING, TEST_SUMMARY };
+enum class ProgramStates { SET_MODE, SET_LIPO_CELL_COUNT, SET_CURRENT_LIMIT, SET_MAX_THROTTLE, SET_NUM_STEPS, SET_TEST_RUNTIME, CHECK_SD_CARD, SETUP_LOG_FILE, ARM_AND_CALIBRATE, TEST_START_SCREEN, RUN_TEST, HIGH_CURRENT_WARNING, LOW_VOLTAGE_WARNING, TEST_SUMMARY };
 
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 SDLogger sdLogger(SD_CS_PIN);
@@ -72,7 +72,7 @@ void loop()
             {
                 switch (throttle.GetMode())
                 {
-                    case Throttle::POTINPUT: state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); break;
+                    case Throttle::POTINPUT: state = ProgramStates::CHECK_SD_CARD; lcd.clear(); break;
                     case Throttle::AUTO: state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); break;
                 }
             }
@@ -97,14 +97,28 @@ void loop()
         // Set runtime for auto throttle control
         case ProgramStates::SET_TEST_RUNTIME:
             setTestRuntime();
-            if (userInput == Buttons::RIGHT) { state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); }
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::CHECK_SD_CARD; lcd.clear(); }
             else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); }
             break;
 
-        // Set up SD card data logging
-        case ProgramStates::SETUP_SD_LOGGER:
-            setupSDLogger();
-            if (userInput == Buttons::RIGHT) { state = ProgramStates::ARM_AND_CALIBRATE; lcd.clear(); }
+        // Check SD card. Skip to log file setup screen if a log file has already been created. Allow user to skip SD logger setup to run a test without data logging
+        case ProgramStates::CHECK_SD_CARD:
+            if (!sdLogger.GetFilename().equals("")) { state = ProgramStates::SETUP_LOG_FILE; }
+            checkSDCard();
+            if (userInput == Buttons::START && sdLogger.CheckCard())
+            {
+                sdLogger.Enable();
+                state = ProgramStates::SETUP_LOG_FILE;
+                lcd.clear();
+            }
+
+            else if (userInput == Buttons::RIGHT)
+            {
+                sdLogger.Disable();
+                state = ProgramStates::ARM_AND_CALIBRATE;
+                lcd.clear();
+            }
+
             else if (userInput == Buttons::LEFT)
             {
                 switch (throttle.GetMode())
@@ -113,6 +127,22 @@ void loop()
                     case Throttle::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
                 }
             }
+
+            break;
+
+        // Set up log file for the SD data logger
+        case ProgramStates::SETUP_LOG_FILE:
+            setupLogFile();
+            if (userInput == Buttons::RIGHT && !sdLogger.GetFilename().equals("")) { state = ProgramStates::ARM_AND_CALIBRATE; lcd.clear(); }
+            else if (userInput == Buttons::LEFT)
+            {
+                switch (throttle.GetMode())
+                {
+                    case Throttle::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
+                    case Throttle::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
+                }
+            }
+
             break;
 
         // Calibrate sensors and arm ESC
@@ -126,7 +156,7 @@ void loop()
                 lcd.clear();
             }
 
-            else if (userInput == Buttons::LEFT) { state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); }
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SETUP_LOG_FILE; lcd.clear(); }
             break;
 
         // Test start screen
@@ -287,51 +317,39 @@ void setTestRuntime()
     else if (userInput == Buttons::DOWN) { throttle.SetAutoRunTime(decrementParameter(runtime)); lcd.clear();}
 }
 
-void setupSDLogger()
+void checkSDCard()
 {
-    switch (sdLogger.GetIsEnabled())
+    switch (sdLogger.CheckCard())
     {
-        // If SD data logger hasn't been enabled yet, check if a card is detected. If a card is found, the user can press Start to setup and enable data logging
         case false:
-            switch (sdLogger.CheckCard())
-            {
-                case false:
-                    lcd.setCursor(0, 0);
-                    lcd.print("No card detected");
-                    lcd.setCursor(0, 1);
-                    lcd.print("                ");
-                    break;
-
-                case true:
-                    lcd.setCursor(0, 0);
-                    lcd.print("Card detected   ");
-                    lcd.setCursor(0, 1);
-                    lcd.print("Press Start     ");
-                    if (userInput == Buttons::START) 
-                    { 
-                        sdLogger.Enable();
-                        lcd.clear(); 
-                    }
-
-                    break;
-            }
+            lcd.setCursor(0, 0);
+            lcd.print("No card detected");
+            lcd.setCursor(0, 1);
+            lcd.print("                ");
             break;
 
-        // Create and format a log file if a file has not been set up yet
         case true:
-            if (sdLogger.GetFilename().equals("")) 
-            {
-                sdLogger.CreateNewFile();
-                String dataHeaders[] = { "Time (s)", "Throttle (%)", "Thrust (lb)", "Current (A)", "Voltage (V)", "Power (W)" };
-                sdLogger.Log(dataHeaders, 6);
-            }
-
             lcd.setCursor(0, 0);
-            lcd.print("Filename:");
+            lcd.print("Card detected   ");
             lcd.setCursor(0, 1);
-            lcd.print(sdLogger.GetFilename());
+            lcd.print("Press Start     ");
             break;
     }
+}
+
+void setupLogFile()
+{
+    if (sdLogger.GetFilename().equals(""))
+    {
+        sdLogger.CreateNewFile();
+        String dataHeaders[] = { "Time (s)", "Throttle (%)", "Thrust (lb)", "Current (A)", "Voltage (V)", "Power (W)" };
+        sdLogger.Log(dataHeaders, 6);
+    }
+
+    lcd.setCursor(0, 0);
+    lcd.print("Log filename:");
+    lcd.setCursor(0, 1);
+    lcd.print(sdLogger.GetFilename());
 }
 
 void armAndCalibrate()
