@@ -10,7 +10,7 @@ Buttons AnalogButtons::GetInput()
 
 	switch (_state)
 	{
-	case States::OPEN: if (input < (int)Buttons::SELECT)
+	case States::OPEN: if (input < (int)Buttons::START)
 	{
 		_state = States::PRESSED;
 
@@ -18,12 +18,12 @@ Buttons AnalogButtons::GetInput()
 		else if (input < (int)Buttons::UP) { _button = Buttons::UP; }
 		else if (input < (int)Buttons::DOWN) { _button = Buttons::DOWN; }
 		else if (input < (int)Buttons::LEFT) { _button = Buttons::LEFT; }
-		else if (input < (int)Buttons::SELECT) { _button = Buttons::SELECT; }
+		else if (input < (int)Buttons::START) { _button = Buttons::START; }
 	}
 
 		break;
 
-	case States::PRESSED: if (input > (int)Buttons::SELECT) { _state = States::OPEN; return _button; }
+	case States::PRESSED: if (input > (int)Buttons::START) { _state = States::OPEN; return _button; }
 	}
 
 	return Buttons::NONE;

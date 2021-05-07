@@ -3,7 +3,7 @@
 #include "AnalogSensor.h"
 
 AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings, const int8_t &upperLimit, const int8_t &lowerLimit) :
-	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
+	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _calibration(false), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
 {
 	// Initialize current readings buffer
 	_readings = new float[_numReadings];
@@ -41,7 +41,10 @@ void AnalogSensor::Calibrate()
 	}
 
 	_calibration = buffer / numCalibrationReadings;
+	_isCalibrated = true;
 }
+
+bool AnalogSensor::GetIsCalibrated() const { return _isCalibrated; }
 
 void AnalogSensor::Update()
 {
@@ -76,10 +79,10 @@ float AnalogSensor::GetMaxValue() const { return _maxValue; }
 
 float AnalogSensor::GetMinValue() const { return _minValue; }
 
-int8_t AnalogSensor::GetUpperSafeguard() const { return _upperSafeguard; }
+float AnalogSensor::GetUpperSafeguard() const { return _upperSafeguard; }
 
-void AnalogSensor::SetUpperSafeguard(const int8_t &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _upperLimit, _lowerLimit); }
+void AnalogSensor::SetUpperSafeguard(const float &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _upperLimit, _lowerLimit); }
 
-int8_t AnalogSensor::GetLowerSafeguard() const { return _lowerSafeguard; }
+float AnalogSensor::GetLowerSafeguard() const { return _lowerSafeguard; }
 
-void AnalogSensor::SetLowerSafeguard(const int8_t &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _upperLimit, _lowerLimit); }
+void AnalogSensor::SetLowerSafeguard(const float &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _upperLimit, _lowerLimit); }

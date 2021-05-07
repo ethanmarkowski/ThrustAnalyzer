@@ -39,11 +39,12 @@ public:
 	void SetMode(const int8_t &mode);
 	uint32_t GetAutoRunTime() const;
 	void SetAutoRunTime(const uint32_t &autoRunTime);
+	uint8_t GetAutoThrottleNumSteps() const;
 	void SetAutoThrottleNumSteps(const uint8_t &autoThrottleNumSteps);
 	float GetAutoMaxThrottle() const;
 	void SetAutoMaxThrottle(const float &autoMaxThrottle);
-	bool GetThrottle() const;
 	void Run();
+	float GetThrottle() const;
 };
 
 #endif

@@ -31,6 +31,8 @@ uint32_t Throttle::GetAutoRunTime() const { return _autoRunTime; }
 
 void Throttle::SetAutoRunTime(const uint32_t &autoRunTime) { _autoRunTime = constrain(autoRunTime, 5000, 120000); }
 
+uint8_t Throttle::GetAutoThrottleNumSteps() const { return _autoThrottleNumSteps; }
+
 void Throttle::SetAutoThrottleNumSteps(const uint8_t &autoThrottleNumSteps) { _autoThrottleNumSteps = constrain(autoThrottleNumSteps, 1, 20); }
 
 float Throttle::GetAutoMaxThrottle() const { return _autoMaxThrottle; }
@@ -65,22 +67,18 @@ float Throttle::_AutoThrottle()
 
 uint16_t Throttle::_ThrottleToPulse() const { return constrain(_throttle * (_maxPulse - _minPulse) + _minPulse, _minPulse, _maxPulse); }
 
-bool Throttle::GetThrottle() const { return _throttle; }
-
 void Throttle::Run()
 {
 	// Update throttle setting
 	switch (_mode)
 	{
-	case POTINPUT:
-		_throttle = _PotInputToThrottle();
-		break;
+	case POTINPUT: _throttle = _PotInputToThrottle(); break;
 
-	case AUTO:
-		_throttle = _AutoThrottle();
-		break;
+	case AUTO: _throttle = _AutoThrottle(); break;
 	}
 
 	// Send PWM signal to ESC
 	writeMicroseconds(_ThrottleToPulse());
 }
+
+float Throttle::GetThrottle() const { return _throttle; }

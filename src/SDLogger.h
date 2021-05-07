@@ -20,7 +20,7 @@ public:
 	bool CheckCard() const;
 	void Enable();
 	void Disable();
-	bool IsEnabled() const;
+	bool GetIsEnabled() const;
 	void CreateNewFile();
 	String GetFilename() const;
 	void Log(const String *values, const uint8_t &numValues);

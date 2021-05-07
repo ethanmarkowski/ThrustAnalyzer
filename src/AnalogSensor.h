@@ -14,6 +14,7 @@ private:
 	const bool _bidirectional;
 	const float _sensitivity;
 	float _calibration;
+	bool _isCalibrated;
 	const uint8_t _numReadings;
 	uint8_t _index;
 	float *_readings;
@@ -23,8 +24,8 @@ private:
 	float _minValue;
 	int8_t _upperLimit;
 	int8_t _lowerLimit;
-	int8_t _upperSafeguard;
-	int8_t _lowerSafeguard;
+	float _upperSafeguard;
+	float _lowerSafeguard;
 
 	AnalogSensor();
 	float AnalogToValue() const;
@@ -35,15 +36,16 @@ public:
 	AnalogSensor(const uint8_t &pin, const bool &bidirectional, const float &sensitivity);
 	~AnalogSensor();
 	void Calibrate();
+	bool GetIsCalibrated() const;
 	void Update();
 	float GetValue() const;
 	float GetRawValue() const;
 	float GetMaxValue() const;
 	float GetMinValue() const;
-	int8_t GetUpperSafeguard() const;
-	void SetUpperSafeguard(const int8_t &upperSafeguard);
-	int8_t GetLowerSafeguard() const;
-	void SetLowerSafeguard(const int8_t &lowerSafeguard);
+	float GetUpperSafeguard() const;
+	void SetUpperSafeguard(const float &upperSafeguard);
+	float GetLowerSafeguard() const;
+	void SetLowerSafeguard(const float &lowerSafeguard);
 };
 
 #endif

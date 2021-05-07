@@ -2,8 +2,8 @@
 
 #include "ThrustStand.h"
 
-ThrustStand::ThrustStand(const uint8_t &doutPin, const uint8_t &sckPin, const float &scaleFactor, const uint8_t &numReadings) :
-	_doutPin(doutPin), _sckPin(sckPin), _scaleFactor(scaleFactor), _numReadings(numReadings), _index(0)
+ThrustStand::ThrustStand(const uint8_t &doutPin, const uint8_t &sckPin, const float &scaleFactor, const uint8_t &numReadings, const int8_t &upperLimit, const int8_t &lowerLimit) :
+	_doutPin(doutPin), _sckPin(sckPin), _scaleFactor(scaleFactor), _isCalibrated(false), _numReadings(numReadings), _index(0), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
 {
 	// Pin assignments for underlying HX711 object
 	begin(_doutPin, _sckPin);
@@ -19,9 +19,18 @@ ThrustStand::ThrustStand(const uint8_t &doutPin, const uint8_t &sckPin, const fl
 	}
 }
 
+ThrustStand::ThrustStand(const uint8_t &doutPin, const uint8_t &sckPin, const float &scaleFactor, const uint8_t &numReadings) :
+	ThrustStand(doutPin, sckPin, scaleFactor, numReadings, 127, -127) {}
+
 ThrustStand::~ThrustStand() { delete[] _readings; }
 
-void ThrustStand::Calibrate() { tare(); }
+void ThrustStand::Calibrate()
+{
+	tare();
+	_isCalibrated = true;
+}
+
+bool ThrustStand::GetIsCalibrated() const { return _isCalibrated; }
 
 void ThrustStand::Update()
 {
@@ -67,3 +76,11 @@ float ThrustStand::GetMinValue() const
 {
 	return _minValue;
 }
+
+float ThrustStand::GetUpperSafeguard() const { return _upperSafeguard; }
+
+void ThrustStand::SetUpperSafeguard(const float &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _upperLimit, _lowerLimit); }
+
+float ThrustStand::GetLowerSafeguard() const { return _lowerSafeguard; }
+
+void ThrustStand::SetLowerSafeguard(const float &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _upperLimit, _lowerLimit); }

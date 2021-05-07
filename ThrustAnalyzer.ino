@@ -4,412 +4,414 @@
  Author:	Ethan Markowski
 */
 
-void(*resetFunc) (void) = 0;
+void(*resetProgram) (void) = 0;
 
 #include <LiquidCrystal.h>
-#include <SPI.h>
-#include <SD.h>
 #include "src/SDLogger.h"
 #include "src/AnalogButtons.h"
 #include "src/Throttle.h"
 #include "src/ThrustStand.h"
 #include "src/AnalogSensor.h"
 
-#define SD_CLK 52
-#define SD_DO 50
-#define SD_DI 51
-#define SD_CS 53
-
-enum Pins { POT_PIN = A14, BUTTON_PIN = A0, THRUST_DOUT_PIN = 23, THRUST_SCK_PIN = 22, CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44 };
+enum Pins { SD_CLK_PIN = 52, SD_DO_PIN = 50, SD_DI_PIN = 51, SD_CS_PIN = 53, POT_PIN = A14, BUTTON_PIN = A0, THRUST_DOUT_PIN = 23, THRUST_SCK_PIN = 22, CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44 };
 enum SensorSmoothing { THRUST_SMOOTHING = 1, CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
+const float cellMinVoltage = 3.0; // Establishes the minimum voltage cutoff per LIPO cell
 
-HX711 loadCell;
+enum class ProgramStates { SET_MODE, SET_LIPO_CELL_COUNT, SET_CURRENT_LIMIT, SET_MAX_THROTTLE, SET_NUM_STEPS, SET_TEST_RUNTIME, SETUP_SD_LOGGER, ARM_AND_CALIBRATE, TEST_START_SCREEN, RUN_TEST, HIGH_CURRENT_WARNING, LOW_VOLTAGE_WARNING, TEST_SUMMARY };
+
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+SDLogger sdLogger(SD_CS_PIN);
 AnalogButtons button(BUTTON_PIN);
 Throttle throttle(ESC_PIN, POT_PIN);
-File datalog;
 ISensor *thrustStand = new ThrustStand(THRUST_DOUT_PIN, THRUST_SCK_PIN, 105300, THRUST_SMOOTHING);
 ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING, 50, 0);
 ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING, 50, 0);
 
 ISensor *sensors[] = { thrustStand, currentSensor, voltageSensor };
 
-Buttons input;
-int menu_position=0, test_status=0, lipo_type=4, current_limit=150, sd_enabled, sd_filename_selected=0;
-unsigned long start_time;
+ProgramStates state = ProgramStates::SET_MODE;
+Buttons userInput;
+uint32_t testStartTime;
 
-void setup() {
-  Serial.begin(9600);
+void setup()
+{
+    // Set up LCD display
+    lcd.begin(16, 2);
+    lcd.noCursor();
 
-  //set up LCD display
-  lcd.begin(16, 2);
-  lcd.noCursor();
-
-  //set up SD breakout
-  pinMode(53,OUTPUT);
+    // Test program presets
+    voltageSensor->SetLowerSafeguard(4 * cellMinVoltage); // Default LIPO battery configuration is set to 4s
+    currentSensor->SetUpperSafeguard(50);
 }
 
-void loop() {
-  if (menu_position!=3){
-    menu();
-  }
-  else if (menu_position==3){
-    switch (throttle.GetMode()){
-      case 0: auto_thrust_test();
-      break;
-      case 1: manual_thrust_test();
-      break;
-    }
-  }
-}
+void loop() 
+{
+    // Retrieve a button input
+    userInput = button.GetInput();
 
-void auto_thrust_test(void){
-  /*Set Maximum Throttle*/
-  if (test_status==0){
-    set_max_thrust();
-  }
-
-  /*Set Test Duration*/
-  else if (test_status==1){
-    set_test_duration();
-  }
-
-  /*Calibrate*/
-  else if (test_status==2){
-    calibration();
-  }
-
-  /*SD Card Setup Screen*/
-  else if (test_status==3){
-    sd_setup();
-  }
-
-  /*Test Start Screen*/
-  else if (test_status==4){
-    test_start_screen();
-  }
-
-  /*Run Test*/
-  else if (test_status==5){
-    thrust_test();
-  }
-
-  /*Display Summary Results*/
-  else if (test_status==6){
-    thrust_test_summary();
-  }
-}
-
-void manual_thrust_test(void){
-  
-  /*Calibrate Thrust Stand and Current Sensor*/
-  if (test_status==0){
-    calibration();
-  }
-
-  /*BRIDGE*/
-  else if (test_status==2){
-    test_status=0;
-  }
-
-  /*BRDIGE*/
-  else if (test_status==-1){
-    test_status=0;
-    menu_position=2;
-  }
-
-  /*SD Card Setup Screen*/
-  else if (test_status==3){
-    sd_setup();
-  }
-  
-  /*Test Start Screen*/
-  else if (test_status==4){
-    test_start_screen();
-  }
-
-
-  /*Run Test*/
-  else if (test_status==5){
-    thrust_test();
-  }
-
-  /*Display summary results*/
-  else if (test_status==6){
-    thrust_test_summary();
-  }
-}
-
-void data_dump(void){
-  datalog.print(String(float(millis()-start_time)/1000)+"; ");
-  datalog.print(String(throttle.GetThrottle())+"; ");
-  datalog.print(String(thrustStand->GetRawValue())+"; ");
-  datalog.print(String(currentSensor->GetRawValue())+"; ");
-  datalog.print(String(voltageSensor->GetValue())+"; ");
-  datalog.println(String(currentSensor->GetRawValue()*voltageSensor->GetValue()));
-}
-
-/*Setup menu*/
-void menu(void){
-
-  /*Menu Tier*/
-  switch(menu_position){
-
-    /*Select Mode*/
-    case 0:
-    lcd.home();
-    lcd.print("Select Mode:");
-    lcd.setCursor(0,1);
-    switch (throttle.GetMode()){
-      case 0:
-      lcd.print("1 Auto Thrust");
-      break;
-      case 1:
-      lcd.print("2 Manual Thrust");
-      break;
-    }
-
-    input = button.GetInput();
-    if (input==Buttons::UP&&throttle.GetMode()<1){
-      lcd.clear();
-    }
-    else if (input==Buttons::DOWN&&throttle.GetMode()>0){
-      lcd.clear();
-    }
-    else if (input==Buttons::RIGHT){
-      menu_position=1;
-      lcd.clear();
-    }
-    break;
-
-    /*Set LIPO battery type */
-    case 1:
-    lcd.home();
-    lcd.print("Set LIPO type:");
-    lcd.setCursor(0,1);
-    lcd.print(lipo_type);
-    lcd.print("s ");
-
-    input = button.GetInput();
-    if (input==Buttons::UP&&lipo_type<12){
-      lipo_type++;
-    }
-    else if (input==Buttons::DOWN&&lipo_type>1){
-      lipo_type--;
-    }
-    else if (input==Buttons::LEFT){
-      menu_position--;
-      lcd.clear();
-    }
-    else if (input==Buttons::RIGHT){
-      menu_position++;
-      lcd.clear();
-    }
-    break;
-
-    /* Set Current Limit*/
-    case 2:
-    lcd.home();
-    lcd.print("Set Max Limit:");
-    lcd.setCursor(0,1);
-    lcd.print(current_limit);
-    lcd.print("A  ");
-
-    input = button.GetInput();
-    if (input==Buttons::UP&&current_limit<150){
-      current_limit+=5;
-    }
-    else if (input==Buttons::DOWN&&current_limit>5){
-      current_limit-=5;
-    }
-    else if (input==Buttons::LEFT){
-      menu_position--;
-      lcd.clear();
-    }
-    else if (input==Buttons::RIGHT){
-      menu_position++;
-      lcd.clear();
-    }
-    break;   
-  }
-}
-
-/*Thrust test states*/
-void set_max_thrust(void){
-  lcd.home();
-  lcd.print("Set Max Throttle");
-  lcd.setCursor(0,1);
-  lcd.print(throttle.GetAutoMaxThrottle());
-  lcd.print("%  ");
-
-  input = button.GetInput();
-}
-
-void set_test_duration(void){
-  lcd.home();
-  lcd.print("Set Test Runtime");
-  lcd.setCursor(0,1);
-  lcd.print(throttle.GetAutoRunTime());
-  lcd.print("s ");
-
-  input = button.GetInput();
-}
-
-void calibration(void){
-  lcd.home();
-  lcd.print("Calibration:");
-  lcd.setCursor(0,1);
-  lcd.print("Press Start");
-
-  input = button.GetInput();
-
-  if (input==Buttons::SELECT){
-    thrustStand->Calibrate();
-    currentSensor->Calibrate();
-
-    test_status=3;
-    lcd.clear();
-  }
-  else if (input==Buttons::LEFT){
-    test_status--;
-    lcd.clear();
-  }
-}
-
-void sd_setup(void){
-  if (SD.begin()){
-    lcd.home();
-    lcd.print("SD Initialized");
-    lcd.setCursor(0,1);
-    lcd.print("Press Start");
-    sd_enabled=1;
-  }
-  else if (!SD.begin()){
-    lcd.home();
-    lcd.print("No SD Detected");
-    lcd.setCursor(0,1);
-    lcd.print("Press Start");
-    sd_enabled=0;
-  }
-
-  Serial.println(sd_enabled);
-
-  input = button.GetInput();
-
-  if (input==Buttons::SELECT){
-    if (sd_enabled==1){
-      int i=1;
-      while (sd_filename_selected==0){
-        if (!SD.exists("data_" + String(i) + ".txt")){
-          datalog = SD.open("data_" + String(i) + ".txt", FILE_WRITE);
-          sd_filename_selected=1;
-          datalog.println("time(s); throttle(%); thrust(lb); current(A); voltage(V); power(W)");
-        }
-        else {
-          i++;
-        }
-      }
-    }
-
-    test_status=4;
-    lcd.clear();
-  }
-
-  else if (input==Buttons::LEFT){
-    test_status--;
-    lcd.clear();
-  }
-}
-
-void test_start_screen(void){
-    throttle.Run();
+    // Program states
+    switch (state)
+    {
+        // Select between manual and automatic throttle control
+        case ProgramStates::SET_MODE:
+            setMode();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::SET_LIPO_CELL_COUNT; lcd.clear(); }
+            break;
         
-  lcd.home();
-  lcd.print("Test Ready");
-  lcd.setCursor(0,1);
-  lcd.print("Press Start");
+        // Set number of cells in LIPO battery
+        case ProgramStates::SET_LIPO_CELL_COUNT:
+            setLipoCellCount();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); }
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MODE; lcd.clear(); }
+            break;
+        
+        // Set current limit
+        case ProgramStates::SET_CURRENT_LIMIT:
+            setCurrentLimit();
+            if (userInput == Buttons::RIGHT)
+            {
+                switch (throttle.GetMode())
+                {
+                    case Throttle::POTINPUT: state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); break;
+                    case Throttle::AUTO: state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); break;
+                }
+            }
 
-  input = button.GetInput();
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_LIPO_CELL_COUNT; lcd.clear(); }
+            break;
 
-  if (input==Buttons::LEFT){
-    test_status--;
-    lcd.clear();
-  }
-  else if (input==Buttons::SELECT){
-    test_status=5;
-    lcd.clear();
-    start_time=millis();
-  }
-}
+        // Set max throttle parameter for auto throttle control
+        case ProgramStates::SET_MAX_THROTTLE:
+            setMaxThrottle();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::SET_NUM_STEPS; lcd.clear(); }
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); }
+            break;
 
-void thrust_test(void){
-  input = button.GetInput(); 
+        // Set number of throttle steps for auto throttle control
+        case ProgramStates::SET_NUM_STEPS:
+            setNumSteps();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); }
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); }
+            break;
 
-  if (input==Buttons::SELECT){
-      throttle.Disarm(); //disable throttle
-    test_status=6;          
-    lcd.clear();
-  }
+        // Set runtime for auto throttle control
+        case ProgramStates::SET_TEST_RUNTIME:
+            setTestRuntime();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); }
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); }
+            break;
 
-  //writes data to file if SD file storage is enabled
-  if (sd_enabled==1){
-    data_dump();
-  }
-    
-  currentSensor->Update();
-  voltageSensor->Update();
+        // Set up SD card data logging
+        case ProgramStates::SETUP_SD_LOGGER:
+            setupSDLogger();
+            if (userInput == Buttons::RIGHT) { state = ProgramStates::ARM_AND_CALIBRATE; lcd.clear(); }
+            else if (userInput == Buttons::LEFT)
+            {
+                switch (throttle.GetMode())
+                {
+                    case Throttle::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
+                    case Throttle::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
+                }
+            }
+            break;
 
-  lcd.home();
+        // Calibrate sensors and arm ESC
+        case ProgramStates::ARM_AND_CALIBRATE:
+            armAndCalibrate();
+            if (userInput == Buttons::START)
+            {
+                for (auto sensor : sensors) { sensor->Calibrate(); }
+                throttle.Arm();
+                state = ProgramStates::TEST_START_SCREEN;
+                lcd.clear();
+            }
 
-  //thrust reading display
-  lcd.print(thrustStand->GetValue(), 2);
-  lcd.print("lb  ");
+            else if (userInput == Buttons::LEFT) { state = ProgramStates::SETUP_SD_LOGGER; lcd.clear(); }
+            break;
 
-  //throttle percentage display
-  lcd.setCursor(9,0);
-  lcd.print((int)throttle.GetThrottle() * 100, 0);
-  lcd.print("%   ");
+        // Test start screen
+        case ProgramStates::TEST_START_SCREEN:
+            testStartScreen();
+            if (userInput == Buttons::START)
+            {
+                testStartTime = millis();
+                state = ProgramStates::RUN_TEST;
+                lcd.clear();
+            }
 
-  //Current draw display
-  lcd.setCursor(0,1);
-  lcd.print(float(round(2*currentSensor->GetValue()))/2,1);
-  lcd.print("A   ");
+            else if (userInput == Buttons::LEFT) 
+            { 
+                throttle.Disarm();
+                state = ProgramStates::ARM_AND_CALIBRATE;
+                lcd.clear();
+            }
 
-  //power draw display
-  lcd.setCursor(9,1);
-  //lcd.print();
-  lcd.print(round(voltageSensor->GetValue()*currentSensor->GetValue()));
-  lcd.print("W   ");
-}
+            break;
 
-void thrust_test_summary(void){
-  lcd.home();
+        // Run test
+        case ProgramStates::RUN_TEST:
+            if (userInput == Buttons::START)
+            {
+                throttle.Disarm();
+                if (sdLogger.GetIsEnabled()) { sdLogger.Save(); }
+                state = ProgramStates::TEST_SUMMARY;
+                lcd.clear();
+            }
 
-  //max thrust display
-  lcd.print(thrustStand->GetMaxValue(), 2);
-  lcd.print("lb  ");
+            else if (currentSensor->GetMaxValue() >= currentSensor->GetUpperSafeguard())
+            {
+                throttle.Disarm();
+                if (sdLogger.GetIsEnabled()) { sdLogger.Save(); }
+                state = ProgramStates::HIGH_CURRENT_WARNING;
+                lcd.clear();
+            }
 
-  //efficiency at max power
-  lcd.setCursor(8,0);
-  lcd.print(453.592* thrustStand->GetMaxValue() /(currentSensor->GetMaxValue()*voltageSensor->GetMinValue()));
-  lcd.print("g/W");
+            else if (voltageSensor->GetMinValue() <= voltageSensor->GetLowerSafeguard())
+            {
+                throttle.Disarm();
+                if (sdLogger.GetIsEnabled()) { sdLogger.Save(); }
+                state = ProgramStates::LOW_VOLTAGE_WARNING;
+                lcd.clear();
+            }
 
-  //max current draw display
-  lcd.setCursor(0,1);
-  lcd.print(currentSensor->GetMaxValue(),2);
-  lcd.print("A    ");
+            break;
 
-  //max power display
-  lcd.setCursor(8,1);
-  lcd.print(currentSensor->GetMaxValue()*voltageSensor->GetMinValue(),0);
-  lcd.print("W   ");
+        // High current warning
+        case ProgramStates::HIGH_CURRENT_WARNING:
+            highCurrentWarning();
+            if (userInput == Buttons::START) { state = ProgramStates::TEST_SUMMARY; lcd.clear(); }
+            break;
 
-  input = button.GetInput();
+        // Low voltage warning
+        case ProgramStates::LOW_VOLTAGE_WARNING:
+            lowVoltageWarning();
+            if (userInput == Buttons::START) { state = ProgramStates::TEST_SUMMARY; lcd.clear(); }
+            break;
 
-  if (input==Buttons::SELECT){
-    if (sd_enabled==1){
-      datalog.close(); //closes and saves datalog file on SD
+        // Test results summary
+        case ProgramStates::TEST_SUMMARY:
+            if (userInput == Buttons::START) { resetProgram(); }
+            break;
     }
-    resetFunc(); //reset program
-  }
+}
+
+void setMode()
+{
+    int8_t mode = throttle.GetMode();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Mode:");
+    lcd.setCursor(0, 1);
+
+    switch (mode)
+    {
+        case Throttle::POTINPUT: lcd.print("Manual Throttle"); break;
+        case Throttle::AUTO: lcd.print("Auto Throttle"); break;
+    }
+
+    if (userInput == Buttons::UP) { throttle.SetMode(++mode); lcd.clear(); }
+    else if (userInput == Buttons::DOWN) { throttle.SetMode(--mode); lcd.clear(); }
+}
+
+void setLipoCellCount()
+{
+    // Back calculates the LIPO cell count based on the voltage sensor's lower safeguard value 
+    uint8_t lipoNumCells = voltageSensor->GetLowerSafeguard() / cellMinVoltage;
+
+    lcd.setCursor(0, 0);
+    lcd.print("LIPO cell count:");
+    lcd.setCursor(0, 1);
+    lcd.print(String(lipoNumCells) + "s");
+
+    // Allows user to change the battery cell count setting and sets the voltage sensor's lower safeguard to the corresponding low voltage cutoff level
+    if (userInput == Buttons::UP) { voltageSensor->SetLowerSafeguard((lipoNumCells + 1) * cellMinVoltage); lcd.clear(); }
+    else if (userInput == Buttons::DOWN) { voltageSensor->SetLowerSafeguard((max(lipoNumCells - 1, 0)) * cellMinVoltage); lcd.clear(); } // max function prohibits cell counts <= 0
+}
+
+void setCurrentLimit()
+{
+    float currentLimit = currentSensor->GetUpperSafeguard();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Current limit:");
+    lcd.setCursor(0, 1);
+    lcd.print(String(currentLimit) + " A");
+
+    // Allow user to increase and decrease the current limit by single Amp increments when the parameter is less than 10 amps
+    // When the setting is above 10 amps, the increment interval becomes 5 amps
+    if (userInput == Buttons::UP) { currentSensor->SetUpperSafeguard(incrementParameter(currentLimit)); lcd.clear(); }
+
+    else if (userInput == Buttons::DOWN) { currentSensor->SetUpperSafeguard(decrementParameter(currentLimit)); lcd.clear(); }
+}
+
+void setMaxThrottle()
+{
+    float maxThrottle = throttle.GetAutoMaxThrottle();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Max throttle:");
+    lcd.setCursor(0, 1);
+    lcd.print(String(maxThrottle * 100) + "%");
+
+    // Allow user to increase and decrease the throttle limit by one percent point when the parameter is less than 10%
+    // When the setting is above 10%, the increment interval becomes 5 percent points
+    if (userInput == Buttons::UP) { throttle.SetAutoMaxThrottle(incrementParameter(maxThrottle * 100) / 100); lcd.clear(); }
+    else if (userInput == Buttons::DOWN) { throttle.SetAutoMaxThrottle(decrementParameter(maxThrottle * 100) / 100); lcd.clear(); }
+}
+
+void setNumSteps()
+{
+    uint8_t numSteps = throttle.GetAutoThrottleNumSteps();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Throttle steps:");
+    lcd.setCursor(0, 1);
+    lcd.print(numSteps);
+
+    if (userInput == Buttons::UP) { throttle.SetAutoThrottleNumSteps(numSteps + 1); lcd.clear(); }
+    else if (userInput == Buttons::DOWN) { throttle.SetAutoThrottleNumSteps(numSteps - 1); lcd.clear(); }
+}
+
+void setTestRuntime()
+{
+    uint32_t runtime = throttle.GetAutoRunTime();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Test runtime:");
+    lcd.setCursor(0, 1);
+    lcd.print(String(runtime) + "%");
+
+    // Allow user to increase and decrease the test runtime by one second when the parameter is less than 10 seconds
+    // When the setting is above 10 s, the increment interval becomes 5 second
+    if (userInput == Buttons::UP) { throttle.SetAutoRunTime(incrementParameter(runtime)); lcd.clear();}
+    else if (userInput == Buttons::DOWN) { throttle.SetAutoRunTime(decrementParameter(runtime)); lcd.clear();}
+}
+
+void setupSDLogger()
+{
+    switch (sdLogger.GetIsEnabled())
+    {
+        // If SD data logger hasn't been enabled yet, check if a card is detected. If a card is found, the user can press Start to setup and enable data logging
+        case false:
+            switch (sdLogger.CheckCard())
+            {
+                case false:
+                    lcd.setCursor(0, 0);
+                    lcd.print("No card detected");
+                    lcd.setCursor(0, 1);
+                    lcd.print("                ");
+                    break;
+
+                case true:
+                    lcd.setCursor(0, 0);
+                    lcd.print("Card detected   ");
+                    lcd.setCursor(0, 1);
+                    lcd.print("Press Start     ");
+                    if (userInput == Buttons::START) 
+                    { 
+                        sdLogger.Enable();
+                        lcd.clear(); 
+                    }
+
+                    break;
+            }
+            break;
+
+        // Create and format a log file if a file has not been set up yet
+        case true:
+            if (sdLogger.GetFilename().equals("")) 
+            {
+                sdLogger.CreateNewFile();
+                String dataHeaders[] = { "Time (s)", "Throttle (%)", "Thrust (lb)", "Current (A)", "Voltage (V)", "Power (W)" };
+                sdLogger.Log(dataHeaders, 6);
+            }
+
+            lcd.setCursor(0, 0);
+            lcd.print("Filename:");
+            lcd.setCursor(0, 1);
+            lcd.print(sdLogger.GetFilename());
+            break;
+    }
+}
+
+void armAndCalibrate()
+{
+    lcd.setCursor(0, 0);
+    lcd.print("Arm & calibrate:");
+    lcd.setCursor(0, 1);
+    lcd.print("Press Start");
+}
+
+void testStartScreen()
+{
+    lcd.setCursor(0, 0);
+    lcd.print("Test ready:");
+    lcd.setCursor(0, 1);
+    lcd.print("Press Start");
+}
+
+void runTest()
+{
+    float runtime = (float)(millis() - testStartTime) / 1000;
+    throttle.Run();
+    for (auto sensor : sensors) { sensor->Update(); }
+
+    // Print results to LCD display
+    lcd.setCursor(0, 0);
+    lcd.print(String(thrustStand->GetValue(), 2) + "lb  ");
+    lcd.setCursor(9, 0);
+    lcd.print(String(throttle.GetThrottle() * 100, 0) + "%   ");
+    lcd.setCursor(0, 1);
+    lcd.print(String(currentSensor->GetValue(), 1) + "A   ");
+    lcd.setCursor(9, 1);
+    lcd.print(String(round(voltageSensor->GetValue() * currentSensor->GetValue())) + "W   ");
+
+    // Log data to SD card if enabled
+    if (sdLogger.GetIsEnabled())
+    {
+        String data[] = { String(runtime), String(throttle.GetThrottle()), String(thrustStand->GetRawValue()), String(currentSensor->GetRawValue()), String(voltageSensor->GetRawValue()), String(currentSensor->GetRawValue() * voltageSensor->GetRawValue()) };
+        sdLogger.Log(data, 6);
+    }
+}
+
+void highCurrentWarning()
+{
+    lcd.setCursor(0, 0);
+    lcd.print("Warning:");
+    lcd.setCursor(0, 1);
+    lcd.print("High current");
+}
+
+void lowVoltageWarning()
+{
+    lcd.setCursor(0, 0);
+    lcd.print("Warning:");
+    lcd.setCursor(0, 1);
+    lcd.print("Low voltage");
+}
+
+void testSummary()
+{
+    lcd.setCursor(0, 0);
+    lcd.print(String(thrustStand->GetMaxValue(), 2) + "lb");
+    lcd.setCursor(8,0);
+    lcd.print(String(453.592 * thrustStand->GetMaxValue() / (currentSensor->GetMaxValue() * voltageSensor->GetMinValue())) + "g/W");
+    lcd.setCursor(0,1);
+    lcd.print(String(currentSensor->GetMaxValue(),2) + "A");
+    lcd.setCursor(8,1);
+    lcd.print(String(currentSensor->GetMaxValue() * voltageSensor->GetMinValue(), 0) + "W");
+}
+
+// Increments and returns a parameter. If the parameter is equal to or greater than 10, the parameter is increment by 5. Otherwise, the parameter is incremented by 1.
+float incrementParameter(const float &value)
+{
+    if (value >= 10) { return value + 5; }
+    else { return value + 1; }
+}
+
+// Decrements and returns a parameter. If the parameter is equal to or greater than 15, the parameter is decremented by 5. Otherwise, the parameter is decremented by 1.
+float decrementParameter(const float &value)
+{
+    if (value >= 15) { return value - 5; }
+    else { return value - 5; }
 }

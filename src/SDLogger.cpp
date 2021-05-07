@@ -2,7 +2,7 @@
 
 #include "SDLogger.h"
 
-SDLogger::SDLogger(const uint8_t &csPin) : _csPin(csPin), _isEnabled(false), _filename("No File") { pinMode(53, OUTPUT); }
+SDLogger::SDLogger(const uint8_t &csPin) : _csPin(csPin), _isEnabled(false), _filename("") { pinMode(53, OUTPUT); }
 
 bool SDLogger::CheckCard() const { return SD.begin(); }
 
@@ -10,7 +10,7 @@ void SDLogger::Enable() { _isEnabled = true; }
 
 void SDLogger::Disable() { _isEnabled = false; }
 
-bool SDLogger::IsEnabled() const { return _isEnabled; }
+bool SDLogger::GetIsEnabled() const { return _isEnabled; }
 
 void SDLogger::CreateNewFile()
 {

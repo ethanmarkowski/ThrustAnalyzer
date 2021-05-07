@@ -13,6 +13,9 @@ public:
 	// Calibrate sensor
 	virtual void Calibrate() = 0;
 
+	// Check if sensor has been calibrated
+	virtual bool GetIsCalibrated() const = 0;
+
 	// Read a new sensor value
 	virtual void Update() = 0;
 
@@ -27,6 +30,18 @@ public:
 
 	// Return the minimum raw value recorded
 	virtual float GetMinValue() const = 0;
+
+	// Return the upper safeguard value
+	virtual float GetUpperSafeguard() const = 0;
+
+	// Set the upper safeguard value
+	virtual void SetUpperSafeguard(const float &upperSafeguard) = 0;
+
+	// Return the lower safeguard value
+	virtual float GetLowerSafeguard() const = 0;
+
+	// Set the lower safeguard value
+	virtual void SetLowerSafeguard(const float &lowerSafeguard) = 0;
 };
 
 #endif
