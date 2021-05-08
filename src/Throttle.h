@@ -5,7 +5,12 @@
 
 #include <Arduino.h>
 #include <Servo.h>
-#include "AnalogSensor.h"
+
+namespace ThrottleHelper
+{
+	enum class ThrottleModes : uint8_t { POTINPUT, AUTO };
+	const String modeString[] = { "Manual throttle", "Auto throttle" };
+}
 
 class Throttle : protected Servo
 {
@@ -13,7 +18,7 @@ private:
 	const uint8_t _escPin;
 	const uint8_t _potPin;
 	bool _isArmed;
-	int8_t _mode;
+	ThrottleHelper::ThrottleModes _mode;
 	bool _isTestStarted;
 	uint32_t _startTime;
 	uint32_t _autoRunTime;
@@ -29,14 +34,15 @@ private:
 	uint16_t _ThrottleToPulse() const;
 
 public:
-	enum Modes { POTINPUT, AUTO, NUM_MODES = AUTO };
-
 	Throttle(const uint8_t &escPin, const uint8_t &potPin);
 	void Arm();
 	void Disarm();
 	bool GetArmStatus() const;
-	int8_t GetMode() const;
-	void SetMode(const int8_t &mode);
+	ThrottleHelper::ThrottleModes GetMode() const;
+	const String GetModeString() const;
+	void SetMode(const ThrottleHelper::ThrottleModes &mode);
+	void IncrementMode();
+	void DecrementMode();
 	uint32_t GetAutoRunTime() const;
 	void SetAutoRunTime(const uint32_t &autoRunTime);
 	uint8_t GetAutoThrottleNumSteps() const;

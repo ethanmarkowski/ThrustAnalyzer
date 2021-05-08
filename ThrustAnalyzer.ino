@@ -72,8 +72,8 @@ void loop()
             {
                 switch (throttle.GetMode())
                 {
-                    case Throttle::POTINPUT: state = ProgramStates::CHECK_SD_CARD; lcd.clear(); break;
-                    case Throttle::AUTO: state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::POTINPUT: state = ProgramStates::CHECK_SD_CARD; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::AUTO: state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); break;
                 }
             }
 
@@ -123,8 +123,8 @@ void loop()
             {
                 switch (throttle.GetMode())
                 {
-                    case Throttle::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
-                    case Throttle::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
                 }
             }
 
@@ -138,8 +138,8 @@ void loop()
             {
                 switch (throttle.GetMode())
                 {
-                    case Throttle::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
-                    case Throttle::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::POTINPUT: state = ProgramStates::SET_CURRENT_LIMIT; lcd.clear(); break;
+                    case ThrottleHelper::ThrottleModes::AUTO: state = ProgramStates::SET_TEST_RUNTIME; lcd.clear(); break;
                 }
             }
 
@@ -227,20 +227,13 @@ void loop()
 
 void setMode()
 {
-    int8_t mode = throttle.GetMode();
-
     lcd.setCursor(0, 0);
     lcd.print("Mode:");
     lcd.setCursor(0, 1);
+    lcd.print(throttle.GetModeString());
 
-    switch (mode)
-    {
-        case Throttle::POTINPUT: lcd.print("Manual Throttle"); break;
-        case Throttle::AUTO: lcd.print("Auto Throttle"); break;
-    }
-
-    if (userInput == Buttons::UP) { throttle.SetMode(++mode); lcd.clear(); }
-    else if (userInput == Buttons::DOWN) { throttle.SetMode(--mode); lcd.clear(); }
+    if (userInput == Buttons::UP) { throttle.IncrementMode(); lcd.clear(); }
+    else if (userInput == Buttons::DOWN) { throttle.DecrementMode(); lcd.clear(); }
 }
 
 void setLipoCellCount()

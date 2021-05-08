@@ -3,7 +3,7 @@
 #include "Throttle.h"
 
 Throttle::Throttle(const uint8_t &escPin, const uint8_t &potPin) :
-	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(AUTO), _isTestStarted(false), _autoRunTime(0), _autoThrottleNumSteps(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
+	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(ThrottleHelper::ThrottleModes::AUTO), _isTestStarted(false), _autoRunTime(0), _autoThrottleNumSteps(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
 
 void Throttle::Arm()
 {
@@ -23,9 +23,29 @@ void Throttle::Disarm()
 
 bool Throttle::GetArmStatus() const { return _isArmed; }
 
-int8_t Throttle::GetMode() const { return _mode; }
+ThrottleHelper::ThrottleModes Throttle::GetMode() const { return _mode; }
 
-void Throttle::SetMode(const int8_t &mode) { _mode = constrain(mode, 0, NUM_MODES); }
+const String Throttle::GetModeString() const { return ThrottleHelper::modeString[(int)_mode]; }
+
+void Throttle::SetMode(const ThrottleHelper::ThrottleModes &mode) { _mode = mode; }
+
+void Throttle::IncrementMode() 
+{ 
+	switch (_mode)
+	{
+		case ThrottleHelper::ThrottleModes::POTINPUT: _mode = ThrottleHelper::ThrottleModes::AUTO; break;
+		case ThrottleHelper::ThrottleModes::AUTO: break;
+	}
+}
+
+void Throttle::DecrementMode()
+{
+	switch (_mode)
+	{
+		case ThrottleHelper::ThrottleModes::POTINPUT: break;
+		case ThrottleHelper::ThrottleModes::AUTO: _mode = ThrottleHelper::ThrottleModes::POTINPUT; break;
+	}
+}
 
 uint32_t Throttle::GetAutoRunTime() const { return _autoRunTime; }
 
@@ -72,9 +92,9 @@ void Throttle::Run()
 	// Update throttle setting
 	switch (_mode)
 	{
-	case POTINPUT: _throttle = _PotInputToThrottle(); break;
+		case ThrottleHelper::ThrottleModes::POTINPUT: _throttle = _PotInputToThrottle(); break;
 
-	case AUTO: _throttle = _AutoThrottle(); break;
+		case ThrottleHelper::ThrottleModes::AUTO: _throttle = _AutoThrottle(); break;
 	}
 
 	// Send PWM signal to ESC

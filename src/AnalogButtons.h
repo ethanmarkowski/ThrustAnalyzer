@@ -10,7 +10,7 @@ enum class Buttons { RIGHT = 50, UP = 300, DOWN = 500, LEFT = 700, START = 900, 
 class AnalogButtons
 {
 private:
-	enum class States { OPEN, PRESSED };
+	enum class States : uint8_t { OPEN, PRESSED };
 
 	const uint8_t _pin;
 	States _state;
