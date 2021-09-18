@@ -5,7 +5,7 @@
 AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings, const int8_t &upperLimit, const int8_t &lowerLimit) :
 	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _calibration(false), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
 {
-	// Initialize current readings buffer
+	// Initialize sensor readings buffer
 	_readings = new float[_numReadings];
 	for (uint8_t i = 0; i < _numReadings; ++i)
 	{
@@ -53,7 +53,7 @@ void AnalogSensor::Update()
 	_readings[_index] = _rawValue;
 
 	// Increment _index or reset to zero if the index is already set to the end of the _readings array
-	(_index < _numReadings) ? ++_index : _index = 0;
+	(_index < _numReadings - 1) ? ++_index : _index = 0;
 
 	// Calculate smoothed value
 	float buffer = 0;
@@ -81,8 +81,8 @@ float AnalogSensor::GetMinValue() const { return _minValue; }
 
 float AnalogSensor::GetUpperSafeguard() const { return _upperSafeguard; }
 
-void AnalogSensor::SetUpperSafeguard(const float &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _upperLimit, _lowerLimit); }
+void AnalogSensor::SetUpperSafeguard(const float &upperSafeguard) { _upperSafeguard = constrain(upperSafeguard, _lowerLimit, _upperLimit); }
 
 float AnalogSensor::GetLowerSafeguard() const { return _lowerSafeguard; }
 
-void AnalogSensor::SetLowerSafeguard(const float &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _upperLimit, _lowerLimit); }
+void AnalogSensor::SetLowerSafeguard(const float &lowerSafeguard) { _lowerSafeguard = constrain(lowerSafeguard, _lowerLimit, _upperLimit); }

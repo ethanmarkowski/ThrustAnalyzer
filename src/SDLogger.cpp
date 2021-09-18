@@ -15,9 +15,13 @@ bool SDLogger::GetIsEnabled() const { return _isEnabled; }
 void SDLogger::CreateNewFile()
 {
 	// Find the first unused filename on the card that follows the format of data-<number>.log
-	for (uint8_t i = 1; !SD.exists("data-" + String(i) + ".log"); ++i) 
+	uint8_t i = 1;
+	while (true)
 	{
 		_filename = "data-" + String(i) + ".log";
+		if (!SD.exists(_filename)) { break; }
+
+		++i;
 	}
 
 	// Create SD file object

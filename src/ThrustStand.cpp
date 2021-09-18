@@ -39,7 +39,7 @@ void ThrustStand::Update()
 	_readings[_index] = _rawValue;
 
 	// Increment _index or reset to zero if the index is already set to the end of the _readings array
-	(_index < _numReadings) ? ++_index : _index = 0;
+	(_index < _numReadings - 1) ? ++_index : _index = 0;
 
 	// Calculate smoothed value
 	float buffer = 0;

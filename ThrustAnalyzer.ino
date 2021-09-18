@@ -24,7 +24,7 @@ SDLogger sdLogger(SD_CS_PIN);
 AnalogButtons button(BUTTON_PIN);
 Throttle throttle(ESC_PIN, POT_PIN);
 ISensor *thrustStand = new ThrustStand(THRUST_DOUT_PIN, THRUST_SCK_PIN, 105300, THRUST_SMOOTHING);
-ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING, 50, 0);
+ISensor *currentSensor = new AnalogSensor(CURRENT_PIN, true, 0.04, CURRENT_SMOOTHING, 50, 1);
 ISensor *voltageSensor = new AnalogSensor(VOLTAGE_PIN, false, 0.08975, VOLTAGE_SMOOTHING, 50, 0);
 
 ISensor *sensors[] = { thrustStand, currentSensor, voltageSensor };
@@ -101,9 +101,8 @@ void loop()
             else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); }
             break;
 
-        // Check SD card. Skip to log file setup screen if a log file has already been created. Allow user to skip SD logger setup to run a test without data logging
+        // Check SD card. Allow user to skip SD logger setup to run a test without data logging
         case ProgramStates::CHECK_SD_CARD:
-            if (!sdLogger.GetFilename().equals("")) { state = ProgramStates::SETUP_LOG_FILE; }
             checkSDCard();
             if (userInput == Buttons::START && sdLogger.CheckCard())
             {
@@ -156,7 +155,11 @@ void loop()
                 lcd.clear();
             }
 
-            else if (userInput == Buttons::LEFT) { state = ProgramStates::SETUP_LOG_FILE; lcd.clear(); }
+            else if (userInput == Buttons::LEFT)
+            {
+                (sdLogger.GetIsEnabled()) ? state = ProgramStates::SETUP_LOG_FILE : state = ProgramStates::CHECK_SD_CARD;
+                lcd.clear();
+            }
             break;
 
         // Test start screen
@@ -180,6 +183,8 @@ void loop()
 
         // Run test
         case ProgramStates::RUN_TEST:
+            runTest();
+
             if (userInput == Buttons::START)
             {
                 throttle.Disarm();
@@ -220,6 +225,7 @@ void loop()
 
         // Test results summary
         case ProgramStates::TEST_SUMMARY:
+            testSummary();
             if (userInput == Buttons::START) { resetProgram(); }
             break;
     }
@@ -248,7 +254,7 @@ void setLipoCellCount()
 
     // Allows user to change the battery cell count setting and sets the voltage sensor's lower safeguard to the corresponding low voltage cutoff level
     if (userInput == Buttons::UP) { voltageSensor->SetLowerSafeguard((lipoNumCells + 1) * cellMinVoltage); lcd.clear(); }
-    else if (userInput == Buttons::DOWN) { voltageSensor->SetLowerSafeguard((max(lipoNumCells - 1, 0)) * cellMinVoltage); lcd.clear(); } // max function prohibits cell counts <= 0
+    else if (userInput == Buttons::DOWN) { voltageSensor->SetLowerSafeguard(max(lipoNumCells - 1, 1) * cellMinVoltage); lcd.clear(); } // max function prohibits cell counts < 1
 }
 
 void setCurrentLimit()
@@ -261,7 +267,7 @@ void setCurrentLimit()
     lcd.print(String(currentLimit) + " A");
 
     // Allow user to increase and decrease the current limit by single Amp increments when the parameter is less than 10 amps
-    // When the setting is above 10 amps, the increment interval becomes 5 amps
+    // When the setting is 10 amps or more, the increment interval becomes 5 amps
     if (userInput == Buttons::UP) { currentSensor->SetUpperSafeguard(incrementParameter(currentLimit)); lcd.clear(); }
 
     else if (userInput == Buttons::DOWN) { currentSensor->SetUpperSafeguard(decrementParameter(currentLimit)); lcd.clear(); }
@@ -297,17 +303,17 @@ void setNumSteps()
 
 void setTestRuntime()
 {
-    uint32_t runtime = throttle.GetAutoRunTime();
+    uint32_t runtime = throttle.GetAutoRunTime() / 1000; // in units of seconds
 
     lcd.setCursor(0, 0);
     lcd.print("Test runtime:");
     lcd.setCursor(0, 1);
-    lcd.print(String(runtime) + "%");
+    lcd.print(String(runtime) + " s");
 
     // Allow user to increase and decrease the test runtime by one second when the parameter is less than 10 seconds
     // When the setting is above 10 s, the increment interval becomes 5 second
-    if (userInput == Buttons::UP) { throttle.SetAutoRunTime(incrementParameter(runtime)); lcd.clear();}
-    else if (userInput == Buttons::DOWN) { throttle.SetAutoRunTime(decrementParameter(runtime)); lcd.clear();}
+    if (userInput == Buttons::UP) { throttle.SetAutoRunTime(incrementParameter(runtime) * 1000); lcd.clear();}
+    else if (userInput == Buttons::DOWN) { throttle.SetAutoRunTime(decrementParameter(runtime) * 1000); lcd.clear();}
 }
 
 void checkSDCard()
@@ -413,7 +419,7 @@ void testSummary()
     lcd.print(String(currentSensor->GetMaxValue() * voltageSensor->GetMinValue(), 0) + "W");
 }
 
-// Increments and returns a parameter. If the parameter is equal to or greater than 10, the parameter is increment by 5. Otherwise, the parameter is incremented by 1.
+// Increments and returns a parameter. If the parameter is equal to or greater than 10, the parameter is incremented by 5. Otherwise, the parameter is incremented by 1.
 float incrementParameter(const float &value)
 {
     if (value >= 10) { return value + 5; }
@@ -424,5 +430,5 @@ float incrementParameter(const float &value)
 float decrementParameter(const float &value)
 {
     if (value >= 15) { return value - 5; }
-    else { return value - 5; }
+    else { return value - 1; }
 }

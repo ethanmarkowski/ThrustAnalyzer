@@ -6,3 +6,5 @@
 /Debug/
 *.vsarduino.h
 *.vcxproj.user
+/Release
+/__vm/Micro Extensions/MultiPlotVisualization

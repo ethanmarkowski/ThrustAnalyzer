@@ -3,7 +3,7 @@
 #include "Throttle.h"
 
 Throttle::Throttle(const uint8_t &escPin, const uint8_t &potPin) :
-	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(ThrottleHelper::ThrottleModes::AUTO), _isTestStarted(false), _autoRunTime(0), _autoThrottleNumSteps(0), _autoMaxThrottle(0.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
+	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(ThrottleHelper::ThrottleModes::AUTO), _isTestStarted(false), _autoRunTime(5000), _autoThrottleNumSteps(5), _autoMaxThrottle(1.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
 
 void Throttle::Arm()
 {
@@ -57,7 +57,7 @@ void Throttle::SetAutoThrottleNumSteps(const uint8_t &autoThrottleNumSteps) { _a
 
 float Throttle::GetAutoMaxThrottle() const { return _autoMaxThrottle; }
 
-void Throttle::SetAutoMaxThrottle(const float &autoMaxThrottle) { _autoMaxThrottle = constrain(autoMaxThrottle, 0.0, 1.0); }
+void Throttle::SetAutoMaxThrottle(const float &autoMaxThrottle) { _autoMaxThrottle = constrain(autoMaxThrottle, 0.01, 1.0); }
 
 float Throttle::_PotInputToThrottle() const { return (float)analogRead(_potPin) / 1024; }
 
@@ -80,7 +80,7 @@ float Throttle::_AutoThrottle()
 	float throttle = constrain(((currentTime - _startTime) / stepDuration + 1) * throttleInterval, 0, _autoMaxThrottle);
 
 	// Throttle setting should be overwritten to 0.0 if the test has concluded
-	if (currentTime >= _autoRunTime) { throttle = 0.0; }
+	if (currentTime - _startTime >= _autoRunTime) { throttle = 0.0; }
 
 	return throttle;
 }
