@@ -384,13 +384,13 @@ void runTest()
 
     // Print results to LCD display
     lcd.setCursor(0, 0);
-    lcd.print(String(thrustStand->GetValue(), 2) + "lb  ");
+    lcd.print(String(max(thrustStand->GetValue(), 0), 2) + "lb   ");
     lcd.setCursor(9, 0);
-    lcd.print(String(throttle.GetThrottle() * 100, 0) + "%   ");
+    lcd.print(String(throttle.GetThrottle() * 100, 0) + "%    ");
     lcd.setCursor(0, 1);
-    lcd.print(String(max(currentSensor->GetValue(), 1), 0) + "A   ");
-    lcd.setCursor(9, 1);
-    lcd.print(String(max(round(voltageSensor->GetValue() * currentSensor->GetValue()), 0) + "W   "));
+    lcd.print(String(max(currentSensor->GetValue(), 0), 1) + "A      ");
+    lcd.setCursor(10, 1);
+    lcd.print(String(max(round(voltageSensor->GetValue() * currentSensor->GetValue()), 0)) + "W     ");
 
     // Log data to SD card if enabled
     if (sdLogger.GetIsEnabled())
