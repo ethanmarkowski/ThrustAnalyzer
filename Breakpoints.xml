@@ -13,10 +13,10 @@
       <TextPosition>
         <Version>4</Version>
         <FileName>.\ThrustAnalyzer.ino</FileName>
-        <startLine>371</startLine>
+        <startLine>383</startLine>
         <StartColumn>0</StartColumn>
-        <EndLine>371</EndLine>
-        <EndColumn>61</EndColumn>
+        <EndLine>383</EndLine>
+        <EndColumn>19</EndColumn>
         <MarkerId>0</MarkerId>
         <IsLineBased>1</IsLineBased>
         <IsDocumentPathNotFound>0</IsDocumentPathNotFound>
@@ -29,7 +29,7 @@
         </Checksum>
       </TextPosition>
       <NamedLocationText>runTest()</NamedLocationText>
-      <NamedLocationLine>1</NamedLocationLine>
+      <NamedLocationLine>2</NamedLocationLine>
       <NamedLocationColumn>0</NamedLocationColumn>
       <HitCountType>NoHitCount</HitCountType>
       <HitCountTarget>1</HitCountTarget>
@@ -44,7 +44,6 @@
         <Language>00000000-0000-0000-0000-000000000000</Language>
       </AddressLocation>
       <DataCount>4</DataCount>
-      <AutomationInfo>&lt;vmbp Id='b8a7f111-7242-4868-8613-9d41955298b1'/&gt;</AutomationInfo>
       <TracepointText>$FUNCTION {@plot.DataLog.throttle throttle.GetThrottle()} {@plot.DataLog.thrust thrustStand-&gt;GetRawValue()} {@plot.DataLog.current currentSensor-&gt;GetRawValue()} {@plot.DataLog.voltage voltageSensor-&gt;GetRawValue()} {@plot.DataLog.power currentSensor-&gt;GetRawValue() * voltageSensor-&gt;GetRawValue()}</TracepointText>
       <IsTracepointActive>1</IsTracepointActive>
       <TracepointTargetType>VsOutputWindow</TracepointTargetType>
@@ -102,7 +101,7 @@
       </AddressLocation>
       <DataCount>4</DataCount>
       <AutomationInfo>&lt;vmbp Id='1c01b5ee-a9b1-479f-9eb7-0cfe291065d8'/&gt;</AutomationInfo>
-      <TracepointText>{(int)state} {throttle.GetArmStatus()} {throttle.GetModeString()} {voltageSensor-&gt;GetLowerSafeguard() / cellMinVoltage} {currentSensor-&gt;GetUpperSafeguard()} {throttle.GetAutoMaxThrottle()} {throttle.GetAutoThrottleNumSteps()} {throttle.GetAutoRunTime() / 1000} {sdLogger.GetIsEnabled()} {sdLogger.GetFilename()}</TracepointText>
+      <TracepointText>{(int)state} {throttle.GetArmStatus()} {throttle.GetCompletionStatus()} {throttle.GetModeString()} {voltageSensor-&gt;GetLowerSafeguard() / cellMinVoltage} {currentSensor-&gt;GetUpperSafeguard()} {throttle.GetAutoMaxThrottle()} {throttle.GetAutoThrottleNumSteps()} {throttle.GetAutoRunTime() / 1000} {sdLogger.GetIsEnabled()} {sdLogger.GetFilename()}</TracepointText>
       <IsTracepointActive>1</IsTracepointActive>
       <TracepointTargetType>VsOutputWindow</TracepointTargetType>
       <TimeTravelTraceMarker>NoTracing</TimeTravelTraceMarker>

@@ -3,7 +3,7 @@
 #include "Throttle.h"
 
 Throttle::Throttle(const uint8_t &escPin, const uint8_t &potPin) :
-	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(ThrottleHelper::ThrottleModes::AUTO), _isTestStarted(false), _autoRunTime(5000), _autoThrottleNumSteps(5), _autoMaxThrottle(1.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
+	_escPin(escPin), _potPin(potPin), _isArmed(false), _mode(ThrottleHelper::ThrottleModes::AUTO), _isTestStarted(false), _isTestCompleted(false), _autoRunTime(5000), _autoThrottleNumSteps(5), _autoMaxThrottle(1.0), _idlePulse(1000), _minPulse(1030), _maxPulse(2000), _throttle(0) {}
 
 void Throttle::Arm()
 {
@@ -22,6 +22,8 @@ void Throttle::Disarm()
 }
 
 bool Throttle::GetArmStatus() const { return _isArmed; }
+
+bool Throttle::GetCompletionStatus() const { return _isTestCompleted; }
 
 ThrottleHelper::ThrottleModes Throttle::GetMode() const { return _mode; }
 
@@ -80,7 +82,11 @@ float Throttle::_AutoThrottle()
 	float throttle = constrain(((currentTime - _startTime) / stepDuration + 1) * throttleInterval, 0, _autoMaxThrottle);
 
 	// Throttle setting should be overwritten to 0.0 if the test has concluded
-	if (currentTime - _startTime >= _autoRunTime) { throttle = 0.0; }
+	if (currentTime - _startTime >= _autoRunTime)
+	{ 
+		throttle = 0.0;
+		_isTestCompleted = true;
+	}
 
 	return throttle;
 }

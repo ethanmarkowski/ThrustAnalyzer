@@ -193,6 +193,15 @@ void loop()
                 lcd.clear();
             }
 
+            // Automatic test completion when throttle is in auto mode
+            else if (throttle.GetCompletionStatus())
+            {
+                    throttle.Disarm();
+                    if (sdLogger.GetIsEnabled()) { sdLogger.Save(); }
+                    state = ProgramStates::TEST_SUMMARY;
+                    lcd.clear();
+            }
+
             else if (currentSensor->GetMaxValue() >= currentSensor->GetUpperSafeguard())
             {
                 throttle.Disarm();
@@ -370,7 +379,7 @@ void testStartScreen()
 void runTest()
 {
     float runtime = (float)(millis() - testStartTime) / 1000;
-    throttle.Run();
+    //throttle.Run();
     for (auto sensor : sensors) { sensor->Update(); }
 
     // Print results to LCD display
