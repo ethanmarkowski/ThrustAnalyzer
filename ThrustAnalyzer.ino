@@ -16,6 +16,7 @@ void(*resetProgram) (void) = 0;
 enum Pins { SD_CLK_PIN = 52, SD_DO_PIN = 50, SD_DI_PIN = 51, SD_CS_PIN = 53, POT_PIN = A14, BUTTON_PIN = A0, THRUST_DOUT_PIN = 23, THRUST_SCK_PIN = 22, CURRENT_PIN = A13, VOLTAGE_PIN = A15, ESC_PIN = 44 };
 enum SensorSmoothing { THRUST_SMOOTHING = 1, CURRENT_SMOOTHING = 30, VOLTAGE_SMOOTHING = 1 };
 const float cellMinVoltage = 3.0; // Establishes the minimum voltage cutoff per LIPO cell
+const uint8_t sampleRate = 10; // Sample rate of data collection in Hz
 
 enum class ProgramStates { SET_MODE, SET_LIPO_CELL_COUNT, SET_CURRENT_LIMIT, SET_MAX_THROTTLE, SET_NUM_STEPS, SET_TEST_RUNTIME, CHECK_SD_CARD, SETUP_LOG_FILE, ARM_AND_CALIBRATE, TEST_START_SCREEN, RUN_TEST, HIGH_CURRENT_WARNING, LOW_VOLTAGE_WARNING, TEST_SUMMARY };
 
@@ -31,7 +32,6 @@ ISensor *sensors[] = { thrustStand, currentSensor, voltageSensor };
 
 ProgramStates state = ProgramStates::SET_MODE;
 Buttons userInput;
-uint32_t testStartTime;
 
 void setup()
 {
@@ -167,7 +167,6 @@ void loop()
             testStartScreen();
             if (userInput == Buttons::START)
             {
-                testStartTime = millis();
                 state = ProgramStates::RUN_TEST;
                 lcd.clear();
             }
@@ -378,25 +377,34 @@ void testStartScreen()
 
 void runTest()
 {
-    float runtime = (float)(millis() - testStartTime) / 1000;
+    static uint32_t testStartTime = millis(); // Start time in milliseconds
+    static uint32_t lastUpdateTime = millis(); // Time of last sensor update and log write
+
     throttle.Run();
-    for (auto sensor : sensors) { sensor->Update(); }
 
-    // Print results to LCD display
-    lcd.setCursor(0, 0);
-    lcd.print(String(max(thrustStand->GetValue(), 0), 2) + "lb   ");
-    lcd.setCursor(9, 0);
-    lcd.print(String(throttle.GetThrottle() * 100, 0) + "%    ");
-    lcd.setCursor(0, 1);
-    lcd.print(String(max(currentSensor->GetValue(), 0), 1) + "A      ");
-    lcd.setCursor(10, 1);
-    lcd.print(String(max(round(voltageSensor->GetValue() * currentSensor->GetValue()), 0)) + "W     ");
-
-    // Log data to SD card if enabled
-    if (sdLogger.GetIsEnabled())
+    if (millis() - lastUpdateTime >= 1000 / sampleRate)
     {
-        String data[] = { String(runtime), String(throttle.GetThrottle()), String(thrustStand->GetRawValue()), String(currentSensor->GetRawValue()), String(voltageSensor->GetRawValue()), String(currentSensor->GetRawValue() * voltageSensor->GetRawValue()) };
-        sdLogger.Log(data, 6);
+        lastUpdateTime = millis();
+        float runtime = (float)(millis() - testStartTime) / 1000; // Current runtime in seconds
+
+        for (auto sensor : sensors) { sensor->Update(); } // Update sensor readings
+
+        // Print results to LCD display
+        lcd.setCursor(0, 0);
+        lcd.print(String(max(thrustStand->GetValue(), 0), 2) + "lb   ");
+        lcd.setCursor(9, 0);
+        lcd.print(String(throttle.GetThrottle() * 100, 0) + "%    ");
+        lcd.setCursor(0, 1);
+        lcd.print(String(max(currentSensor->GetValue(), 0), 1) + "A      ");
+        lcd.setCursor(10, 1);
+        lcd.print(String(max(round(voltageSensor->GetValue() * currentSensor->GetValue()), 0)) + "W     ");
+
+        // Log data to SD card if enabled
+        if (sdLogger.GetIsEnabled())
+        {
+            String data[] = { String(runtime), String(throttle.GetThrottle()), String(thrustStand->GetRawValue()), String(currentSensor->GetRawValue()), String(voltageSensor->GetRawValue()), String(currentSensor->GetRawValue() * voltageSensor->GetRawValue()) };
+            sdLogger.Log(data, 6);
+        }
     }
 }
 

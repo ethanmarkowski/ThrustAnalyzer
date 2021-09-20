@@ -13,10 +13,10 @@
       <TextPosition>
         <Version>4</Version>
         <FileName>.\ThrustAnalyzer.ino</FileName>
-        <startLine>383</startLine>
+        <startLine>385</startLine>
         <StartColumn>0</StartColumn>
-        <EndLine>383</EndLine>
-        <EndColumn>19</EndColumn>
+        <EndLine>385</EndLine>
+        <EndColumn>24</EndColumn>
         <MarkerId>0</MarkerId>
         <IsLineBased>1</IsLineBased>
         <IsDocumentPathNotFound>0</IsDocumentPathNotFound>
@@ -29,7 +29,7 @@
         </Checksum>
       </TextPosition>
       <NamedLocationText>runTest()</NamedLocationText>
-      <NamedLocationLine>2</NamedLocationLine>
+      <NamedLocationLine>6</NamedLocationLine>
       <NamedLocationColumn>0</NamedLocationColumn>
       <HitCountType>NoHitCount</HitCountType>
       <HitCountTarget>1</HitCountTarget>
@@ -44,7 +44,8 @@
         <Language>00000000-0000-0000-0000-000000000000</Language>
       </AddressLocation>
       <DataCount>4</DataCount>
-      <TracepointText>$FUNCTION {@plot.DataLog.throttle throttle.GetThrottle()} {@plot.DataLog.thrust thrustStand-&gt;GetRawValue()} {@plot.DataLog.current currentSensor-&gt;GetRawValue()} {@plot.DataLog.voltage voltageSensor-&gt;GetRawValue()} {@plot.DataLog.power currentSensor-&gt;GetRawValue() * voltageSensor-&gt;GetRawValue()}</TracepointText>
+      <AutomationInfo>&lt;vmbp Id='9653e27e-98d8-413b-9a89-5e9aecae6a15'/&gt;</AutomationInfo>
+      <TracepointText>$FUNCTION {@plot.DataLog.throttle throttle.GetThrottle()} {@plot.DataLog.thrust thrustStand-&gt;GetRawValue()} {@plot.DataLog.current currentSensor-&gt;GetRawValue()} {currentSensor-&gt;GetMaxValue()} {@plot.DataLog.voltage voltageSensor-&gt;GetRawValue()} {voltageSensor-&gt;GetMinValue()} {@plot.DataLog.power currentSensor-&gt;GetRawValue() * voltageSensor-&gt;GetRawValue()}</TracepointText>
       <IsTracepointActive>1</IsTracepointActive>
       <TracepointTargetType>VsOutputWindow</TracepointTargetType>
       <TimeTravelTraceMarker>NoTracing</TimeTravelTraceMarker>
