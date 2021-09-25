@@ -149,7 +149,8 @@ void loop()
             armAndCalibrate();
             if (userInput == Buttons::START)
             {
-                for (auto sensor : sensors) { sensor->Calibrate(); }
+                thrustStand->Calibrate();
+                currentSensor->Calibrate();
                 throttle.Arm();
                 state = ProgramStates::TEST_START_SCREEN;
                 lcd.clear();

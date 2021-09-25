@@ -3,7 +3,7 @@
 #include "AnalogSensor.h"
 
 AnalogSensor::AnalogSensor(const uint8_t&pin, const bool &bidirectional, const float &sensitivity, const uint8_t &numReadings, const int8_t &upperLimit, const int8_t &lowerLimit) :
-	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _calibration(false), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
+	_pin(pin), _bidirectional(bidirectional), _sensitivity(sensitivity), _calibration(0.0), _isCalibrated(false), _numReadings(numReadings), _index(0), _maxValue(-3.4e38), _minValue(3.4e38), _upperLimit(upperLimit), _lowerLimit(lowerLimit), _upperSafeguard(upperLimit), _lowerSafeguard(lowerLimit)
 {
 	// Initialize sensor readings buffer
 	_readings = new float[_numReadings];
@@ -23,13 +23,13 @@ AnalogSensor::~AnalogSensor() { delete[] _readings; }
 
 float AnalogSensor::AnalogToValue() const
 {
-	// Convert analog reading from sensor to raw current value
+	// Convert analog reading from sensor to raw value
 	return ((float)analogRead(_pin) - (512 * _bidirectional)) * 5 / 1024 / _sensitivity;
 }
 
 void AnalogSensor::Calibrate()
 {
-	// Calibrate current sensor based on 100 current readings taken over a 500 millisecond interval
+	// Calibrate sensor based on 100 current readings taken over a 500 millisecond interval
 	float buffer = 0;
 	uint8_t numCalibrationReadings = 100;
 	uint16_t calibrationTime = 500;
