@@ -101,20 +101,13 @@ void loop()
             else if (userInput == Buttons::LEFT) { state = ProgramStates::SET_MAX_THROTTLE; lcd.clear(); }
             break;
 
-        // Check SD card. Allow user to skip SD logger setup to run a test without data logging
+        // Check SD card
         case ProgramStates::CHECK_SD_CARD:
             checkSDCard();
             if (userInput == Buttons::START && sdLogger.CheckCard())
             {
                 sdLogger.Enable();
                 state = ProgramStates::SETUP_LOG_FILE;
-                lcd.clear();
-            }
-
-            else if (userInput == Buttons::RIGHT)
-            {
-                sdLogger.Disable();
-                state = ProgramStates::ARM_AND_CALIBRATE;
                 lcd.clear();
             }
 
