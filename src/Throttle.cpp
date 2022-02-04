@@ -65,6 +65,9 @@ float Throttle::_PotInputToThrottle() const { return (float)analogRead(_potPin) 
 
 float Throttle::_AutoThrottle()
 {
+	// Ensure the throttle setting cannot be extraneous modified to a nonzero value after the test has completed
+	if (_isTestCompleted) { return; }
+
 	// Calculate duration for each throttle step with 3 seconds remaining for the final step
 	uint32_t stepDuration = (_autoRunTime - 3000) / (_autoThrottleNumSteps - 1);
 
