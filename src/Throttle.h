@@ -20,6 +20,7 @@ private:
 	bool _isArmed;
 	ThrottleHelper::ThrottleModes _mode;
 	bool _isTestStarted;
+	bool _isTestCompleted;
 	uint32_t _startTime;
 	uint32_t _autoRunTime;
 	uint8_t _autoThrottleNumSteps;
@@ -38,6 +39,7 @@ public:
 	void Arm();
 	void Disarm();
 	bool GetArmStatus() const;
+	bool GetCompletionStatus() const;
 	ThrottleHelper::ThrottleModes GetMode() const;
 	const String GetModeString() const;
 	void SetMode(const ThrottleHelper::ThrottleModes &mode);
