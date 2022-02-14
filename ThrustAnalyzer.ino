@@ -32,6 +32,7 @@ ISensor *sensors[] = { thrustStand, currentSensor, voltageSensor };
 
 ProgramStates state = ProgramStates::SET_MODE;
 Buttons userInput;
+uint32_t testStartTime;
 
 void setup()
 {
